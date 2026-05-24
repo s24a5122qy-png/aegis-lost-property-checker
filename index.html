@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A.E.G.I.S. - 近未来装備スキャナー & 忘れ物チェッカー</title>
+    <!-- Google Fonts: SF/デジタル感のある Orbitron と Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- スタイルシート -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 背景のサイバーグリッドとスキャンライン効果 -->
+    <div class="cyber-grid"></div>
+    <div class="scanlines"></div>
+
+    <div class="app-container">
+        <!-- ヘッダーエリア -->
+        <header class="cyber-header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <span class="logo-icon">▲</span>
+                    <h1 class="logo-text">A.E.G.I.S.</h1>
+                </div>
+                <p class="sub-logo-text">AUTOMATED EQUIPMENT & GEAR INSPECTION SYSTEM</p>
+            </div>
+            <div class="header-right">
+                <div class="status-panel">
+                    <span class="status-label">SYS STATUS:</span>
+                    <span class="status-value active" id="system-status">ONLINE</span>
+                </div>
+                <div class="time-panel">
+                    <span class="time-label">LOG TIME:</span>
+                    <span class="time-value" id="current-time">00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- メイングリッドレイアウト -->
+        <main class="cyber-main">
+            <!-- 左カラム: ステータス・コントロールパネル -->
+            <section class="panel-left">
+                <!-- ホログラフィック・スキャンサークル -->
+                <div class="cyber-panel scan-console-panel">
+                    <h2 class="panel-title"><span class="title-decor"></span>SCAN CONSOLE</h2>
+                    <div class="scan-circle-container">
+                        <svg class="scan-circle" viewBox="0 0 200 200">
+                            <!-- 背景円 -->
+                            <circle class="circle-bg" cx="100" cy="100" r="85"></circle>
+                            <!-- 進捗円 -->
+                            <circle class="circle-progress" id="progress-bar" cx="100" cy="100" r="85"></circle>
+                            <!-- 装飾用の点線円 -->
+                            <circle class="circle-dot" cx="100" cy="100" r="75"></circle>
+                        </svg>
+                        <div class="scan-text">
+                            <span class="scan-percent" id="scan-percentage">0%</span>
+                            <span class="scan-status" id="scan-status-text">INITIATING</span>
+                        </div>
+                        <!-- 回転するホログラムリング -->
+                        <div class="hologram-ring ring-1"></div>
+                        <div class="hologram-ring ring-2"></div>
+                    </div>
+                    <div class="progress-details">
+                        <div class="detail-row">
+                            <span>TOTAL GEAR:</span>
+                            <span id="total-count">0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>SECURED:</span>
+                            <span class="color-green" id="secured-count">0</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>MISSING:</span>
+                            <span class="color-orange" id="missing-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ミッション・コントロール -->
+                <div class="cyber-panel mission-panel">
+                    <h2 class="panel-title"><span class="title-decor"></span>ACTIVE MISSION</h2>
+                    <div class="mission-selector-container">
+                        <select id="mission-select" class="cyber-select">
+                            <!-- 動的に読み込み -->
+                        </select>
+                        <button id="btn-add-mission" class="cyber-btn btn-icon" title="ミッションを追加">+</button>
+                    </div>
+                    <div class="mission-actions">
+                        <button id="btn-reset-mission" class="cyber-btn btn-secondary">リスト初期化</button>
+                        <button id="btn-delete-mission" class="cyber-btn btn-danger">現在のミッションを消去</button>
+                    </div>
+                </div>
+
+                <!-- システム設定パネル -->
+                <div class="cyber-panel settings-panel">
+                    <h2 class="panel-title"><span class="title-decor"></span>SYS CONFIG</h2>
+                    <div class="setting-row">
+                        <label for="toggle-sound">AUDIO FEEDBACK</label>
+                        <div class="cyber-switch">
+                            <input type="checkbox" id="toggle-sound" checked>
+                            <span class="switch-slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label for="toggle-voice">AI VOICE ASSISTANT</label>
+                        <div class="cyber-switch">
+                            <input type="checkbox" id="toggle-voice" checked>
+                            <span class="switch-slider"></span>
+                        </div>
+                    </div>
+                    <div class="system-log">
+                        <div class="log-title">SYS LOG</div>
+                        <div class="log-content" id="log-console">
+                            <div>[INFO] A.E.G.I.S. Boot sequence completed.</div>
+                            <div>[INFO] Web Audio/Speech modules ready.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右カラム: 装備リストとアイテム登録 -->
+            <section class="panel-right">
+                <!-- 装備リスト -->
+                <div class="cyber-panel gear-panel">
+                    <div class="panel-header-actions">
+                        <h2 class="panel-title"><span class="title-decor"></span>GEAR CHECKLIST</h2>
+                        <button id="btn-check-all" class="cyber-btn btn-small">ALL SECURE</button>
+                    </div>
+                    
+                    <div class="gear-categories" id="gear-list-container">
+                        <!-- カテゴリとアイテムがJSで動的に挿入される -->
+                        <div class="empty-state">
+                            <p>アイテムが登録されていません。下のフォームから登録してください。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- アイテム追加フォーム -->
+                <div class="cyber-panel add-gear-panel">
+                    <h2 class="panel-title"><span class="title-decor"></span>REGISTER NEW GEAR</h2>
+                    <form id="add-gear-form" class="cyber-form">
+                        <div class="form-row">
+                            <div class="form-group flex-2">
+                                <label for="gear-name">GEAR NAME (持ち物名)</label>
+                                <input type="text" id="gear-name" placeholder="例: スマートフォン、財布..." required class="cyber-input">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="gear-category">CATEGORY</label>
+                                <select id="gear-category" class="cyber-select">
+                                    <option value="DEVICE">DEVICE (電子機器)</option>
+                                    <option value="CREDENTIAL">CREDENTIAL (貴重品/ID)</option>
+                                    <option value="NECESSITY">NECESSITY (日用品)</option>
+                                    <option value="OTHER">OTHER (その他)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="gear-priority">SECURITY LEVEL</label>
+                                <select id="gear-priority" class="cyber-select">
+                                    <option value="CRITICAL">CRITICAL (最重要)</option>
+                                    <option value="STANDARD" selected>STANDARD (標準)</option>
+                                    <option value="OPTIONAL">OPTIONAL (任意)</option>
+                                </select>
+                            </div>
+                            <div class="form-group flex-0 align-end">
+                                <button type="submit" class="cyber-btn btn-primary" id="btn-submit-gear">
+                                    <span class="btn-text">DEPLOY GEAR</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+
+        <!-- フッター -->
+        <footer class="cyber-footer">
+            <div class="footer-left">
+                <span>SECURITY ENCRYPTED: SHA-256</span>
+            </div>
+            <div class="footer-center">
+                <span>// ACCESS GRANTED //</span>
+            </div>
+            <div class="footer-right">
+                <span>UNIT: AGENT-00</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ミッション追加用モーダル（近未来風） -->
+    <div id="mission-modal" class="modal-overlay hidden">
+        <div class="cyber-modal">
+            <h3 class="modal-title"><span class="title-decor"></span>CREATE NEW MISSION</h3>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-mission-name">MISSION ID / NAME</label>
+                    <input type="text" id="new-mission-name" placeholder="例: OUTING, BUSINESS_TRIP..." class="cyber-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-modal-cancel" class="cyber-btn btn-secondary">ABORT</button>
+                <button id="btn-modal-submit" class="cyber-btn btn-primary">INITIALIZE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScriptファイル -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1008,6 +1008,135 @@ input:checked + .switch-slider:before {
 }
 
 /* ==========================================================================
+   追加機能: 天気モニター, ヒント, スキャンエフェクト, シールドオーバーレイ
+   ========================================================================== */
+
+/* 天気モニター */
+.weather-monitor {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 3px 8px;
+    border: 1px solid rgba(0, 242, 254, 0.1);
+    margin-right: 15px;
+}
+
+.weather-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-right: 5px;
+}
+
+.weather-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 3px;
+    outline: none;
+}
+
+.weather-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.weather-btn.active#btn-weather-sunny {
+    color: #ff9e00;
+    text-shadow: 0 0 8px rgba(255, 158, 0, 0.6);
+    border-color: rgba(255, 158, 0, 0.3);
+    background: rgba(255, 158, 0, 0.05);
+}
+
+.weather-btn.active#btn-weather-cloudy {
+    color: #a0c0e0;
+    text-shadow: 0 0 8px rgba(160, 192, 224, 0.6);
+    border-color: rgba(160, 192, 224, 0.3);
+    background: rgba(160, 192, 224, 0.05);
+}
+
+.weather-btn.active#btn-weather-rainy {
+    color: #00f2fe;
+    text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+    border-color: rgba(0, 242, 254, 0.3);
+    background: rgba(0, 242, 254, 0.05);
+}
+
+/* 装備ヒントテキスト */
+.gear-hint-text {
+    font-size: 10px;
+    color: #00f2fe;
+    opacity: 0.85;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    font-family: var(--font-cyber);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gear-hint-text::before {
+    content: "» HINT:";
+    font-weight: bold;
+    color: var(--neon-cyan);
+    animation: pulse 1s infinite alternate;
+}
+
+/* スキャン背景アニメーション（チェック時） */
+@keyframes scanline-laser {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.gear-item.secured {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.02) 0%,
+        rgba(57, 255, 20, 0.04) 50%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    background-size: 200% 100%;
+    animation: scanline-laser 1.2s ease-in-out 1;
+    border-color: rgba(57, 255, 20, 0.2);
+}
+
+/* 気象検知で自動デプロイされたアイテムのバッジ */
+.badge-weather {
+    background: rgba(0, 242, 254, 0.15);
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    animation: flash 2s infinite;
+}
+
+/* 全確保シールド発光オーバーレイ */
+.shield-overlay-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 100px rgba(57, 255, 20, 0);
+    pointer-events: none;
+    z-index: 99;
+    transition: box-shadow 0.8s ease-out;
+}
+
+.shield-overlay-effect.active {
+    box-shadow: inset 0 0 80px rgba(57, 255, 20, 0.25), inset 0 0 150px rgba(57, 255, 20, 0.15);
+    animation: shield-pulse 3s infinite ease-in-out;
+}
+
+@keyframes shield-pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+/* ==========================================================================
    メディアクエリ (レスポンシブ対応)
    ========================================================================== */
 

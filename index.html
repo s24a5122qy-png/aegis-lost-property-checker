@@ -27,6 +27,12 @@
                 <p class="sub-logo-text">AUTOMATED EQUIPMENT & GEAR INSPECTION SYSTEM</p>
             </div>
             <div class="header-right">
+                <div class="weather-monitor" id="weather-monitor">
+                    <span class="weather-label">WEATHER:</span>
+                    <button type="button" class="weather-btn active" id="btn-weather-sunny" title="SUNNY (晴天)" onclick="setWeather('SUNNY')">☀️</button>
+                    <button type="button" class="weather-btn" id="btn-weather-cloudy" title="CLOUDY (曇天)" onclick="setWeather('CLOUDY')">☁️</button>
+                    <button type="button" class="weather-btn" id="btn-weather-rainy" title="RAINY (降水)" onclick="setWeather('RAINY')">🌧️</button>
+                </div>
                 <div class="status-panel">
                     <span class="status-label">SYS STATUS:</span>
                     <span class="status-value active" id="system-status">ONLINE</span>
@@ -165,6 +171,10 @@
                                     <option value="OPTIONAL">OPTIONAL (任意)</option>
                                 </select>
                             </div>
+                            <div class="form-group flex-2">
+                                <label for="gear-hint">SECURITY HINT / MEMO (任意)</label>
+                                <input type="text" id="gear-hint" placeholder="例: 鍵の閉め忘れ注意、残高確認など..." class="cyber-input">
+                            </div>
                             <div class="form-group flex-0 align-end">
                                 <button type="submit" class="cyber-btn btn-primary" id="btn-submit-gear">
                                     <span class="btn-text">DEPLOY GEAR</span>
@@ -206,6 +216,9 @@
             </div>
         </div>
     </div>
+
+    <!-- 全確保シールドエフェクト用のオーバーレイ -->
+    <div id="shield-overlay" class="shield-overlay-effect"></div>
 
     <!-- JavaScriptファイル -->
     <script src="script.js"></script>

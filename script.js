@@ -39,6 +39,8 @@ const CIRCLE_CIRCUMFERENCE = 534;
 let missions = {};
 let activeMissionKey = "";
 let audioCtx = null;
+let currentWeather = "SUNNY";
+const WEATHER_ITEM_ID = "weather-umbrella";
 
 // --- DOM要素の取得 ---
 const timeEl = document.getElementById("current-time");
@@ -53,9 +55,11 @@ const addGearFormEl = document.getElementById("add-gear-form");
 const gearNameInputEl = document.getElementById("gear-name");
 const gearCategorySelectEl = document.getElementById("gear-category");
 const gearPrioritySelectEl = document.getElementById("gear-priority");
+const gearHintInputEl = document.getElementById("gear-hint");
 const toggleSoundEl = document.getElementById("toggle-sound");
 const toggleVoiceEl = document.getElementById("toggle-voice");
 const logConsoleEl = document.getElementById("log-console");
+const shieldOverlayEl = document.getElementById("shield-overlay");
 
 // 進捗表示
 const progressBarEl = document.getElementById("progress-bar");
@@ -79,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initClock();
     loadData();
     populateMissionSelector();
+    applyWeatherEffects();
     renderActiveMission();
     
     // イベントリスナー登録
@@ -95,8 +100,68 @@ document.addEventListener("DOMContentLoaded", () => {
     // 初回インタラクション時にAudioContextを初期化するためのトリガー
     document.body.addEventListener("click", initAudioContext, { once: true });
     
-    addLog("[SYSTEM] A.E.G.I.S. Ready. Click anywhere to activate audio systems.");
+    addLog("[SYSTEM] A.E.G.I.S. Boot sequence completed.");
 });
+
+// ==========================================================================
+// 追加機能: 天気管理ロジック
+// ==========================================================================
+
+// 天気の変更
+window.setWeather = function(weather) {
+    if (currentWeather === weather) return;
+    playClickSound();
+    
+    currentWeather = weather;
+    
+    // ボタンのactive表示切り替え
+    const buttons = document.querySelectorAll(".weather-btn");
+    buttons.forEach(btn => btn.classList.remove("active"));
+    
+    const activeBtn = document.getElementById(`btn-weather-${weather.toLowerCase()}`);
+    if (activeBtn) activeBtn.classList.add("active");
+    
+    addLog(`[WEATHER] 天候センサーが [${weather}] に変更されました。`);
+    
+    applyWeatherEffects();
+    renderActiveMission();
+};
+
+// 天気エフェクトを適用（雨具の自動追加・削除）
+function applyWeatherEffects() {
+    const list = missions[activeMissionKey];
+    if (!list) return;
+    
+    const hasUmbrella = list.some(item => item.id === WEATHER_ITEM_ID);
+    
+    if (currentWeather === "RAINY") {
+        if (!hasUmbrella) {
+            // 雨具を追加 (最優先)
+            const weatherUmbrella = {
+                id: WEATHER_ITEM_ID,
+                name: "雨具 (RAIN SHIELD)",
+                category: "NECESSITY",
+                priority: "CRITICAL",
+                checked: false,
+                isWeatherItem: true,
+                hint: "外は雨です。傘やフードをお忘れなく。"
+            };
+            // リストの先頭に追加
+            list.unshift(weatherUmbrella);
+            addLog(`[WEATHER] 降水を検知。雨具 [RAIN SHIELD] をリストに追加。`);
+            speakVoice("警告。降水反応を検知。レインシールドを装備リストに追加しました。");
+        }
+    } else {
+        if (hasUmbrella) {
+            // 雨具を削除
+            const index = list.findIndex(item => item.id === WEATHER_ITEM_ID);
+            if (index > -1) {
+                list.splice(index, 1);
+                addLog(`[WEATHER] 降水反応が消失。雨具を回収しました。`);
+            }
+        }
+    }
+}
 
 // 時計の更新
 function initClock() {
@@ -379,6 +444,15 @@ function renderActiveMission() {
             const statusText = item.checked ? "SECURED" : "MISSING";
             const statusClass = item.checked ? "secured" : "missing";
             
+            // バッジの選択
+            let badgeHtml = `<span class="badge badge-${item.priority.toLowerCase()}">${item.priority}</span>`;
+            if (item.isWeatherItem) {
+                badgeHtml = `<span class="badge badge-weather">WEATHER DETECTED</span>`;
+            }
+            
+            // ヒント表示
+            const hintHtml = item.hint ? `<span class="gear-hint-text">${escapeHTML(item.hint)}</span>` : "";
+            
             html += `
                 <div class="gear-item ${isSecuredClass}" data-id="${item.id}">
                     <div class="gear-item-left">
@@ -388,14 +462,15 @@ function renderActiveMission() {
                         </label>
                         <div class="gear-label">
                             <span class="gear-name-text">${escapeHTML(item.name)}</span>
-                            <div class="gear-meta">
-                                <span class="badge badge-${item.priority.toLowerCase()}">${item.priority}</span>
+                            ${hintHtml}
+                            <div class="gear-meta" style="margin-top: 4px;">
+                                ${badgeHtml}
                             </div>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span class="gear-status-tag ${statusClass}">${statusText}</span>
-                        <button class="btn-delete-gear" onclick="deleteGearItem('${item.id}')" title="削除">✖</button>
+                        ${item.isWeatherItem ? '' : `<button class="btn-delete-gear" onclick="deleteGearItem('${item.id}')" title="削除">✖</button>`}
                     </div>
                 </div>
             `;
@@ -483,6 +558,11 @@ window.toggleGearCheck = function(itemId, checked) {
         const allSecured = list.every(i => i.checked);
         if (allSecured && checked) {
             triggerFullCompletion();
+        } else {
+            // シールド解除
+            if (shieldOverlayEl) {
+                shieldOverlayEl.classList.remove("active");
+            }
         }
     }
 };
@@ -511,6 +591,12 @@ function triggerFullCompletion() {
     setTimeout(() => {
         document.body.classList.remove("system-complete-flash");
     }, 800);
+    
+    // 外殻シールド起動
+    if (shieldOverlayEl) {
+        shieldOverlayEl.classList.add("active");
+        addLog(`[SHIELD] 外殻シールド起動。ALL SYSTEMS CLEAR.`);
+    }
 }
 
 // アイテムの削除
@@ -536,6 +622,7 @@ function handleAddGear(e) {
     const name = gearNameInputEl.value.trim();
     const category = gearCategorySelectEl.value;
     const priority = gearPrioritySelectEl.value;
+    const hint = gearHintInputEl.value.trim();
     
     if (!name) return;
     
@@ -544,7 +631,8 @@ function handleAddGear(e) {
         name: name,
         category: category,
         priority: priority,
-        checked: false
+        checked: false,
+        hint: hint || ""
     };
     
     if (!missions[activeMissionKey]) {
@@ -557,6 +645,7 @@ function handleAddGear(e) {
     
     addLog(`[DEPLOY] 新規装備: ${name} [${priority}] を追加登録。`);
     gearNameInputEl.value = "";
+    gearHintInputEl.value = "";
     gearNameInputEl.focus();
 }
 
@@ -564,6 +653,10 @@ function handleAddGear(e) {
 function handleMissionChange() {
     playClickSound();
     activeMissionKey = missionSelectEl.value;
+    
+    // 新しいミッションに対して現在の天気を適用
+    applyWeatherEffects();
+    
     saveData();
     renderActiveMission();
     

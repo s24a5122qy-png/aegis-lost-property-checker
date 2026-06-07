@@ -1,6 +1,55 @@
 /* ==========================================================================
-   A.E.G.I.S. - APPLICATION ENGINE & LOGIC (JS)
+   A.E.G.I.S. - APPLICATION ENGINE & LOGIC (JS) - VERSION 1.2.0
    ========================================================================== */
+
+// --- AIコア人格とセリフの辞書定義 ---
+const AI_CORES = {
+    "AEGIS": {
+        name: "A.E.G.I.S. (Standard)",
+        pitch: 1.0,
+        rate: 1.1,
+        voiceGender: "female",
+        phrases: {
+            boot: "イージスシステム起動。装備スキャンを開始します。",
+            mission: "ミッション、{name}、をロードしました。",
+            complete: "スキャン完了。すべての装備が確保されました。いってらっしゃいませ、エージェント。",
+            warning: "警告。出発予定時刻まで間もなくです。準備を確認してください。",
+            camera_scan: "光学スキャンを開始。物体を分析しています。",
+            camera_success: "スキャン完了。新たに {count} 個の装備を検知、確保しました。",
+            timer_set: "出発時刻を {time} に設定。残り時間、約 {minutes} 分です。"
+        }
+    },
+    "KRONOS": {
+        name: "K.R.O.N.O.S. (Military)",
+        pitch: 0.7,
+        rate: 0.95,
+        voiceGender: "male",
+        phrases: {
+            boot: "クロノス、起動完了。直ちに装備スキャンを実行せよ。",
+            mission: "作戦指令、{name}、を受領。チェックリストをロードする。",
+            complete: "全装備の確保完了を確認。直ちに出撃せよ、エージェント。",
+            warning: "警告！出発限界時刻まで残りわずか！作戦準備を直ちに完了させよ。遅れることは許されない！",
+            camera_scan: "光学レーダースキャン作動。不審物を検出する。",
+            camera_success: "ターゲットロック完了。装備 {count} ユニットを確保した。",
+            timer_set: "出発時刻を {time} にロック。残り {minutes} 分。遅刻は許されない。"
+        }
+    },
+    "LUNA": {
+        name: "L.U.N.A. (Support)",
+        pitch: 1.3,
+        rate: 1.15,
+        voiceGender: "female",
+        phrases: {
+            boot: "ルナだよ！準備はいい？一緒に忘れ物チェックしよー！",
+            mission: "今日の予定は {name} だね！りょーかい！",
+            complete: "準備おっけー！忘れ物はないみたい。今日も楽しんできてね！",
+            warning: "大変大変！もうすぐ出発の時間だよ！忘れ物はない？急ごう！",
+            camera_scan: "カメラでスキャン中だよー！何があるかな？",
+            camera_success: "じゃじゃーん！一気に {count} 個も見つけちゃった！",
+            timer_set: "出発時間は {time} だね！あと {minutes} 分だよ！がんばろー！"
+        }
+    }
+};
 
 // --- 定数と初期データ定義 ---
 const INITIAL_MISSIONS = {
@@ -41,6 +90,21 @@ let activeMissionKey = "";
 let audioCtx = null;
 let currentWeather = "SUNNY";
 const WEATHER_ITEM_ID = "weather-umbrella";
+
+// AIコア & 音声モデル
+let currentAICore = "AEGIS";
+let selectedVoice = null;
+let voicesList = [];
+
+// 出発タイマー
+let departureTime = null;
+let timerInterval = null;
+let redAlertActive = false;
+let alarmOsc = null;
+let alarmInterval = null;
+
+// カメラ
+let cameraStream = null;
 
 // --- DOM要素の取得 ---
 const timeEl = document.getElementById("current-time");
@@ -97,71 +161,20 @@ document.addEventListener("DOMContentLoaded", () => {
     btnModalCancelEl.addEventListener("click", hideMissionModal);
     btnModalSubmitEl.addEventListener("click", handleCreateMission);
     
+    // 日本語音声エンジンのスキャン
+    if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            loadVoiceModels();
+        };
+        // 一部のブラウザ対策で初回に即読み込み
+        loadVoiceModels();
+    }
+    
     // 初回インタラクション時にAudioContextを初期化するためのトリガー
     document.body.addEventListener("click", initAudioContext, { once: true });
     
-    addLog("[SYSTEM] A.E.G.I.S. Boot sequence completed.");
+    addLog("[SYSTEM] A.E.G.S. V1.2.0 Boot sequence completed. Click to activate audio.");
 });
-
-// ==========================================================================
-// 追加機能: 天気管理ロジック
-// ==========================================================================
-
-// 天気の変更
-window.setWeather = function(weather) {
-    if (currentWeather === weather) return;
-    playClickSound();
-    
-    currentWeather = weather;
-    
-    // ボタンのactive表示切り替え
-    const buttons = document.querySelectorAll(".weather-btn");
-    buttons.forEach(btn => btn.classList.remove("active"));
-    
-    const activeBtn = document.getElementById(`btn-weather-${weather.toLowerCase()}`);
-    if (activeBtn) activeBtn.classList.add("active");
-    
-    addLog(`[WEATHER] 天候センサーが [${weather}] に変更されました。`);
-    
-    applyWeatherEffects();
-    renderActiveMission();
-};
-
-// 天気エフェクトを適用（雨具の自動追加・削除）
-function applyWeatherEffects() {
-    const list = missions[activeMissionKey];
-    if (!list) return;
-    
-    const hasUmbrella = list.some(item => item.id === WEATHER_ITEM_ID);
-    
-    if (currentWeather === "RAINY") {
-        if (!hasUmbrella) {
-            // 雨具を追加 (最優先)
-            const weatherUmbrella = {
-                id: WEATHER_ITEM_ID,
-                name: "雨具 (RAIN SHIELD)",
-                category: "NECESSITY",
-                priority: "CRITICAL",
-                checked: false,
-                isWeatherItem: true,
-                hint: "外は雨です。傘やフードをお忘れなく。"
-            };
-            // リストの先頭に追加
-            list.unshift(weatherUmbrella);
-            addLog(`[WEATHER] 降水を検知。雨具 [RAIN SHIELD] をリストに追加。`);
-            speakVoice("警告。降水反応を検知。レインシールドを装備リストに追加しました。");
-        }
-    } else {
-        if (hasUmbrella) {
-            // 雨具を削除
-            const index = list.findIndex(item => item.id === WEATHER_ITEM_ID);
-            if (index > -1) {
-                list.splice(index, 1);
-                addLog(`[WEATHER] 降水反応が消失。雨具を回収しました。`);
-            }
-        }
-    }
-}
 
 // 時計の更新
 function initClock() {
@@ -223,7 +236,7 @@ function initAudioContext() {
         // 最初のインタラクションで歓迎音と音声合成を実行
         setTimeout(() => {
             playStartSound();
-            speakVoice("イージスシステム起動。装備スキャンを開始します。");
+            speakVoice("boot");
         }, 150.0);
     }
 }
@@ -299,7 +312,6 @@ function playCheckSound(secured) {
     gainNode.connect(audioCtx.destination);
     
     if (secured) {
-        // 高音のサイバーなチェック音
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
@@ -307,7 +319,6 @@ function playCheckSound(secured) {
         gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
     } else {
-        // 低めの解除音
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(400, audioCtx.currentTime);
         osc.frequency.setValueAtTime(250, audioCtx.currentTime + 0.06);
@@ -325,8 +336,6 @@ function playSuccessSound() {
     if (!isSoundEnabled()) return;
     
     const now = audioCtx.currentTime;
-    
-    // コードをアルペジオで鳴らす (Cコード: C5 -> E5 -> G5 -> C6)
     const notes = [523.25, 659.25, 783.99, 1046.50];
     
     notes.forEach((freq, index) => {
@@ -348,23 +357,525 @@ function playSuccessSound() {
     });
 }
 
-// AI合成音声による喋り
-function speakVoice(text) {
+// 5. シャッター音
+function playShutterSound() {
+    if (!isSoundEnabled()) return;
+    
+    const now = audioCtx.currentTime;
+    
+    // ノイズバッファの生成
+    const bufferSize = audioCtx.sampleRate * 0.1;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = buffer;
+    
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1000;
+    
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    
+    noiseNode.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    
+    // サイン波ビープ
+    const osc = audioCtx.createOscillator();
+    const oscGain = audioCtx.createGain();
+    
+    osc.connect(oscGain);
+    oscGain.connect(audioCtx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, now);
+    oscGain.gain.setValueAtTime(0.1, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    
+    noiseNode.start(now);
+    osc.start(now);
+    osc.stop(now + 0.08);
+}
+
+// 6. アラームサイレン
+function playAlarmSound() {
+    if (!isSoundEnabled() || alarmOsc) return;
+    
+    alarmOsc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    alarmOsc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    alarmOsc.type = 'sine';
+    alarmOsc.frequency.setValueAtTime(600, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    
+    let high = true;
+    alarmInterval = setInterval(() => {
+        if (!audioCtx || !alarmOsc) return;
+        const targetFreq = high ? 800 : 600;
+        alarmOsc.frequency.exponentialRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.35);
+        high = !high;
+    }, 400);
+    
+    alarmOsc.start();
+}
+
+function stopAlarmSound() {
+    if (alarmOsc) {
+        try {
+            alarmOsc.stop();
+        } catch(e) {}
+        alarmOsc = null;
+    }
+    if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+    }
+}
+
+// 音声読み上げ（AIコアごとのセリフ・トーン）
+function speakVoice(textKey, variables = {}) {
     if (!isVoiceEnabled()) return;
     
-    // 発言中の音声をキャンセル
     window.speechSynthesis.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text);
+    const core = AI_CORES[currentAICore];
+    let phrase = core.phrases[textKey] || textKey;
+    
+    // 変数の置換
+    Object.keys(variables).forEach(key => {
+        phrase = phrase.replace(`{${key}}`, variables[key]);
+    });
+    
+    const utterance = new SpeechSynthesisUtterance(phrase);
     utterance.lang = "ja-JP";
-    utterance.rate = 1.1; // 若干スピーディーかつロボット的に
-    utterance.pitch = 1.05; // やや高め（知的な近未来AIアシスタント風）
+    utterance.pitch = core.pitch;
+    utterance.rate = core.rate;
+    
+    if (selectedVoice) {
+        utterance.voice = selectedVoice;
+    }
     
     window.speechSynthesis.speak(utterance);
 }
 
 // ==========================================================================
-// 3. UIレンダリング & コントロール
+// 3. AIコア & 音声モデルの切り替え処理
+// ==========================================================================
+
+// 利用可能な音声モデルをスキャン
+function loadVoiceModels() {
+    voicesList = window.speechSynthesis.getVoices();
+    const select = document.getElementById("select-voice-model");
+    if (!select) return;
+    
+    select.innerHTML = '<option value="default">System Default</option>';
+    
+    // 日本語の音声を抽出
+    const jaVoices = voicesList.filter(v => v.lang.startsWith("ja"));
+    
+    jaVoices.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.name;
+        opt.textContent = v.name;
+        select.appendChild(opt);
+    });
+    
+    autoSelectVoiceForCore();
+}
+
+// 人格に応じて適した音声を自動選択
+function autoSelectVoiceForCore() {
+    const core = AI_CORES[currentAICore];
+    const jaVoices = voicesList.filter(v => v.lang.startsWith("ja"));
+    if (jaVoices.length === 0) return;
+    
+    let targetVoice = null;
+    
+    if (core.voiceGender === "male") {
+        targetVoice = jaVoices.find(v => v.name.toLowerCase().includes("ichiro") || v.name.toLowerCase().includes("male")) || null;
+    } else {
+        targetVoice = jaVoices.find(v => v.name.toLowerCase().includes("ayumi") || v.name.toLowerCase().includes("haruka") || v.name.toLowerCase().includes("female")) || null;
+    }
+    
+    if (!targetVoice && jaVoices.length > 0) {
+        targetVoice = jaVoices[0];
+    }
+    
+    if (targetVoice) {
+        selectedVoice = targetVoice;
+        const select = document.getElementById("select-voice-model");
+        if (select) select.value = targetVoice.name;
+    }
+}
+
+// AIコア（人格）の変更
+window.changeAICore = function() {
+    playClickSound();
+    const select = document.getElementById("select-ai-core");
+    if (!select) return;
+    
+    currentAICore = select.value;
+    
+    // ボディクラスを変更してCSSテーマ色を連動
+    document.body.className = `ai-core-${currentAICore.toLowerCase()}`;
+    if (redAlertActive) {
+        document.body.classList.add("red-alert-active");
+    }
+    
+    // 適した音声を自動再設定
+    autoSelectVoiceForCore();
+    
+    addLog(`[SYSTEM] AIコア人格を [${AI_CORES[currentAICore].name}] に変更しました。`);
+    speakVoice("boot");
+};
+
+// ボイスモデルの手動変更
+window.changeVoiceModel = function() {
+    playClickSound();
+    const select = document.getElementById("select-voice-model");
+    if (!select) return;
+    
+    if (select.value === "default") {
+        selectedVoice = null;
+        addLog(`[SYSTEM] 音声モデルをシステムデフォルトに設定しました。`);
+    } else {
+        const found = voicesList.find(v => v.name === select.value);
+        if (found) {
+            selectedVoice = found;
+            addLog(`[SYSTEM] 音声モデルを [${found.name}] に設定しました。`);
+            speakVoice("スキャンシステムオンライン。ボイス設定変更を確認。");
+        }
+    }
+};
+
+// ==========================================================================
+// 4. 追加機能: 天気管理ロジック
+// ==========================================================================
+
+// 天気の変更
+window.setWeather = function(weather) {
+    if (currentWeather === weather) return;
+    playClickSound();
+    
+    currentWeather = weather;
+    
+    // ボタンのactive表示切り替え
+    const buttons = document.querySelectorAll(".weather-btn");
+    buttons.forEach(btn => btn.classList.remove("active"));
+    
+    const activeBtn = document.getElementById(`btn-weather-${weather.toLowerCase()}`);
+    if (activeBtn) activeBtn.classList.add("active");
+    
+    addLog(`[WEATHER] 天候センサーが [${weather}] に変更されました。`);
+    
+    applyWeatherEffects();
+    renderActiveMission();
+};
+
+// 天気エフェクトを適用（雨具の自動追加・削除）
+function applyWeatherEffects() {
+    const list = missions[activeMissionKey];
+    if (!list) return;
+    
+    const hasUmbrella = list.some(item => item.id === WEATHER_ITEM_ID);
+    
+    if (currentWeather === "RAINY") {
+        if (!hasUmbrella) {
+            const weatherUmbrella = {
+                id: WEATHER_ITEM_ID,
+                name: "雨具 (RAIN SHIELD)",
+                category: "NECESSITY",
+                priority: "CRITICAL",
+                checked: false,
+                isWeatherItem: true,
+                hint: "外は雨です。傘やフードをお忘れなく。"
+            };
+            list.unshift(weatherUmbrella);
+            addLog(`[WEATHER] 降水を検知。雨具 [RAIN SHIELD] をリストに追加。`);
+            speakVoice("警告。降水反応を検知。レインシールドを装備リストに追加しました。");
+        }
+    } else {
+        if (hasUmbrella) {
+            const index = list.findIndex(item => item.id === WEATHER_ITEM_ID);
+            if (index > -1) {
+                list.splice(index, 1);
+                addLog(`[WEATHER] 降水反応が消失。雨具を回収しました。`);
+            }
+        }
+    }
+}
+
+// ==========================================================================
+// 5. 追加機能: 出発カウントダウンタイマー
+// ==========================================================================
+
+window.setupTimer = function() {
+    const input = document.getElementById("departure-time-input");
+    if (!input || !input.value) return;
+    
+    playClickSound();
+    stopAlarmSound();
+    if (timerInterval) clearInterval(timerInterval);
+    
+    const [hrs, mins] = input.value.split(":").map(Number);
+    const now = new Date();
+    const target = new Date();
+    target.setHours(hrs, mins, 0, 0);
+    
+    if (target < now) {
+        target.setDate(target.getDate() + 1);
+    }
+    
+    departureTime = target;
+    redAlertActive = false;
+    document.body.classList.remove("red-alert-active");
+    
+    const display = document.getElementById("countdown-display");
+    if (display) {
+        display.className = "timer-value countdown-active";
+    }
+    
+    const status = document.getElementById("timer-alert-status");
+    if (status) {
+        status.textContent = "COUNTING";
+        status.className = "status-normal";
+    }
+    
+    const minutesLeft = Math.round((target - now) / 60000);
+    addLog(`[TIMER] 出発時刻を [${input.value}] に設定。残り時間: 約 ${minutesLeft} 分。`);
+    speakVoice("timer_set", { time: input.value, minutes: minutesLeft });
+    
+    timerInterval = setInterval(updateTimer, 33);
+};
+
+window.abortTimer = function() {
+    playClickSound();
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    departureTime = null;
+    redAlertActive = false;
+    stopAlarmSound();
+    
+    document.body.classList.remove("red-alert-active");
+    
+    const display = document.getElementById("countdown-display");
+    if (display) {
+        display.textContent = "00:00:00.000";
+        display.className = "timer-value countdown-inactive";
+    }
+    
+    const status = document.getElementById("timer-alert-status");
+    if (status) {
+        status.textContent = "INACTIVE";
+        status.className = "status-normal";
+    }
+    
+    addLog(`[TIMER] タイマーを強制解除しました。`);
+};
+
+function updateTimer() {
+    if (!departureTime) return;
+    
+    const now = new Date();
+    const diff = departureTime - now;
+    
+    const display = document.getElementById("countdown-display");
+    const status = document.getElementById("timer-alert-status");
+    
+    if (diff <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        departureTime = null;
+        stopAlarmSound();
+        
+        if (display) display.textContent = "00:00:00.000";
+        if (status) {
+            status.textContent = "TIME UP";
+            status.className = "status-alert";
+        }
+        
+        addLog(`[TIMER] 出発予定時刻に到達。タイムアップ。`);
+        speakVoice("warning");
+        return;
+    }
+    
+    const ms = String(diff % 1000).padStart(3, '0');
+    const totalSecs = Math.floor(diff / 1000);
+    const secs = String(totalSecs % 60).padStart(2, '0');
+    const totalMins = Math.floor(totalSecs / 60);
+    const mins = String(totalMins % 60).padStart(2, '0');
+    const hrs = String(Math.floor(totalMins / 60)).padStart(2, '0');
+    
+    if (display) {
+        display.textContent = `${hrs}:${mins}:${secs}.${ms}`;
+    }
+    
+    // RED ALERT (残り60秒未満)
+    if (diff < 60000 && !redAlertActive) {
+        redAlertActive = true;
+        document.body.classList.add("red-alert-active");
+        if (status) {
+            status.textContent = "RED ALERT";
+            status.className = "status-alert";
+        }
+        addLog(`[TIMER] 緊急警告: 出発予定まで残り60秒以下。`);
+        speakVoice("warning");
+        playAlarmSound();
+    }
+}
+
+// ==========================================================================
+// 6. 追加機能: カメラHUDスキャナー
+// ==========================================================================
+
+window.openCameraScanner = function() {
+    playClickSound();
+    const modal = document.getElementById("camera-modal");
+    if (!modal) return;
+    
+    modal.classList.remove("hidden");
+    const video = document.getElementById("camera-stream");
+    
+    const log = document.getElementById("scan-results-log");
+    if (log) log.innerHTML = '<div class="analysis-status">[SYS] INITIALIZING OPTICAL RECOGNITION...</div>';
+    
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => {
+            cameraStream = stream;
+            if (video) video.srcObject = stream;
+            addLog(`[CAMERA] HUDスキャナー光学モジュール起動。`);
+            speakVoice("camera_scan");
+        })
+        .catch(err => {
+            addLog(`[CAMERA] 起動エラー: ${err}`);
+            alert("カメラを起動できませんでした。パーミッション許可を確認してください。");
+            closeCameraScanner();
+        });
+    } else {
+        alert("非対応ブラウザです。");
+        closeCameraScanner();
+    }
+};
+
+window.closeCameraScanner = function() {
+    playClickSound();
+    const modal = document.getElementById("camera-modal");
+    if (modal) modal.classList.add("hidden");
+    
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    
+    const video = document.getElementById("camera-stream");
+    if (video) video.srcObject = null;
+    
+    addLog(`[CAMERA] HUDスキャナーをシャットダウン。`);
+};
+
+window.triggerOpticalScan = function() {
+    playShutterSound();
+    
+    const flash = document.getElementById("camera-flash");
+    if (flash) {
+        flash.classList.add("active");
+        setTimeout(() => flash.classList.remove("active"), 400);
+    }
+    
+    const log = document.getElementById("scan-results-log");
+    const status = document.getElementById("hud-status");
+    if (status) status.textContent = "STATE: ANALYZING";
+    
+    const steps = [
+        { text: "[SYS] DUMPING FRAME DATA...", delay: 200 },
+        { text: "[SYS] DECOMPRESSING OPTICAL MATRIX...", delay: 400 },
+        { text: "[SYS] RUNNING SHAPE DETECTION (YOLO_V8)...", delay: 700 },
+        { text: "[SYS] RUNNING MATERIAL IDENTIFICATION...", delay: 1000 },
+        { text: "[SYS] COMPARING WITH MISSON CHECKLIST...", delay: 1300 }
+    ];
+    
+    steps.forEach(step => {
+        setTimeout(() => {
+            if (!cameraStream) return;
+            const div = document.createElement("div");
+            div.textContent = step.text;
+            if (log) {
+                log.appendChild(div);
+                log.scrollTop = log.scrollHeight;
+            }
+        }, step.delay);
+    });
+    
+    setTimeout(() => {
+        if (!cameraStream) return;
+        
+        const list = missions[activeMissionKey];
+        if (!list || list.length === 0) {
+            const div = document.createElement("div");
+            div.textContent = "[RESULT] NO ITEM ACTIVE IN MISSION.";
+            if (log) log.appendChild(div);
+            return;
+        }
+        
+        const unchecked = list.filter(item => !item.checked);
+        if (unchecked.length === 0) {
+            const div = document.createElement("div");
+            div.textContent = "[RESULT] ALL GEAR ALREADY SECURED.";
+            if (log) {
+                log.appendChild(div);
+                log.scrollTop = log.scrollHeight;
+            }
+            if (status) status.textContent = "STATE: STANDBY";
+            return;
+        }
+        
+        const countToSecure = Math.min(unchecked.length, Math.floor(Math.random() * 2) + 1);
+        const shuffled = [...unchecked].sort(() => 0.5 - Math.random());
+        const selectedToSecure = shuffled.slice(0, countToSecure);
+        
+        selectedToSecure.forEach(item => {
+            item.checked = true;
+            const div = document.createElement("div");
+            div.className = "log-item-match";
+            div.textContent = `[MATCH] DETECTED: ${item.name} (CONFIDENCE: ${(92 + Math.random() * 7).toFixed(1)}%) -> SECURED`;
+            if (log) {
+                log.appendChild(div);
+                log.scrollTop = log.scrollHeight;
+            }
+            addLog(`[CAMERA] スキャン判定: 装備: ${item.name} を自動確保。`);
+        });
+        
+        saveData();
+        renderActiveMission();
+        
+        if (status) status.textContent = "STATE: COMPLETE";
+        speakVoice("camera_success", { count: countToSecure });
+        
+        // 全確保判定
+        const allSecured = list.every(i => i.checked);
+        if (allSecured) {
+            setTimeout(() => {
+                closeCameraScanner();
+                triggerFullCompletion();
+            }, 1500);
+        }
+    }, 1800);
+};
+
+// ==========================================================================
+// 7. UIレンダリング & 基本イベント制御
 // ==========================================================================
 
 // ミッション選択ドロップダウンの更新
@@ -382,7 +893,6 @@ function populateMissionSelector() {
     });
 }
 
-// キー名を分かりやすい名前に変換
 function getFriendlyMissionName(key) {
     const formatted = key.replace(/_/g, " ");
     return `MISSION: [ ${formatted} ]`;
@@ -403,7 +913,6 @@ function renderActiveMission() {
         return;
     }
     
-    // カテゴリごとにグループ化
     const categories = {
         "DEVICE": [],
         "CREDENTIAL": [],
@@ -444,13 +953,11 @@ function renderActiveMission() {
             const statusText = item.checked ? "SECURED" : "MISSING";
             const statusClass = item.checked ? "secured" : "missing";
             
-            // バッジの選択
             let badgeHtml = `<span class="badge badge-${item.priority.toLowerCase()}">${item.priority}</span>`;
             if (item.isWeatherItem) {
                 badgeHtml = `<span class="badge badge-weather">WEATHER DETECTED</span>`;
             }
             
-            // ヒント表示
             const hintHtml = item.hint ? `<span class="gear-hint-text">${escapeHTML(item.hint)}</span>` : "";
             
             html += `
@@ -484,34 +991,27 @@ function renderActiveMission() {
     
     gearListContainerEl.innerHTML = html;
     
-    // コンソールの更新
     const missingItems = totalItems - securedItems;
     updateScanConsole(totalItems, securedItems, missingItems);
 }
 
-// HTMLエスケープ処理
 function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
 
-// コンソールステータスと進捗円の更新
 function updateScanConsole(total, secured, missing) {
     totalCountEl.textContent = total;
     securedCountEl.textContent = secured;
     missingCountEl.textContent = missing;
     
     const percentage = total === 0 ? 0 : Math.round((secured / total) * 100);
-    
-    // 進捗率テキスト
     scanPercentageEl.textContent = `${percentage}%`;
     
-    // SVG進捗バーのアニメーション
     const offset = CIRCLE_CIRCUMFERENCE - (percentage / 100) * CIRCLE_CIRCUMFERENCE;
     progressBarEl.style.strokeDashoffset = offset;
     
-    // ステータステキストと色の制御
     if (total === 0) {
         scanStatusTextEl.textContent = "NO DATA";
         scanStatusTextEl.className = "scan-status";
@@ -537,10 +1037,9 @@ function updateScanConsole(total, secured, missing) {
 }
 
 // ==========================================================================
-// 4. データ操作イベントハンドラー
+// 8. データ操作イベントハンドラー
 // ==========================================================================
 
-// アイテムのチェック切り替え
 window.toggleGearCheck = function(itemId, checked) {
     const list = missions[activeMissionKey];
     const item = list.find(i => i.id === itemId);
@@ -554,12 +1053,10 @@ window.toggleGearCheck = function(itemId, checked) {
         const status = checked ? "確保しました" : "解除しました";
         addLog(`[SECURE] ${item.name} を${status}`);
         
-        // 全チェック完了時の演出
         const allSecured = list.every(i => i.checked);
         if (allSecured && checked) {
             triggerFullCompletion();
         } else {
-            // シールド解除
             if (shieldOverlayEl) {
                 shieldOverlayEl.classList.remove("active");
             }
@@ -567,7 +1064,6 @@ window.toggleGearCheck = function(itemId, checked) {
     }
 };
 
-// 全て確保ボタン
 function secureAllGear() {
     playClickSound();
     const list = missions[activeMissionKey];
@@ -577,29 +1073,41 @@ function secureAllGear() {
     saveData();
     renderActiveMission();
     
-    addLog(`[SYSTEM] すべての装備のステータスを [SECURED] に設定しました。`);
+    addLog(`[SYSTEM] すべての装備のステータスを [SECURED] に設定。`);
     triggerFullCompletion();
 }
 
-// 全チェック完了時の特別演出
 function triggerFullCompletion() {
-    playSuccessSound();
-    speakVoice("スキャン完了。すべての装備が確保されました。いってらっしゃいませ、エージェント。");
+    // タイマーおよびアラームを停止
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    departureTime = null;
+    redAlertActive = false;
+    stopAlarmSound();
     
-    // 全体発光フラッシュエフェクト
+    document.body.classList.remove("red-alert-active");
+    const status = document.getElementById("timer-alert-status");
+    if (status) {
+        status.textContent = "MISSION READY";
+        status.className = "status-normal";
+    }
+    
+    playSuccessSound();
+    speakVoice("complete");
+    
     document.body.classList.add("system-complete-flash");
     setTimeout(() => {
         document.body.classList.remove("system-complete-flash");
     }, 800);
     
-    // 外殻シールド起動
     if (shieldOverlayEl) {
         shieldOverlayEl.classList.add("active");
-        addLog(`[SHIELD] 外殻シールド起動。ALL SYSTEMS CLEAR.`);
+        addLog(`[SHIELD] 外殻防御シールド起動。ALL SYSTEMS CLEAR.`);
     }
 }
 
-// アイテムの削除
 window.deleteGearItem = function(itemId) {
     playClickSound();
     const list = missions[activeMissionKey];
@@ -614,7 +1122,6 @@ window.deleteGearItem = function(itemId) {
     }
 };
 
-// アイテムの新規追加
 function handleAddGear(e) {
     e.preventDefault();
     playClickSound();
@@ -649,51 +1156,45 @@ function handleAddGear(e) {
     gearNameInputEl.focus();
 }
 
-// ミッションの切り替え
 function handleMissionChange() {
     playClickSound();
     activeMissionKey = missionSelectEl.value;
     
-    // 新しいミッションに対して現在の天気を適用
     applyWeatherEffects();
-    
     saveData();
     renderActiveMission();
     
-    const friendlyName = getFriendlyMissionName(activeMissionKey);
     addLog(`[MISSION] アクティブミッションを [${activeMissionKey}] に変更しました。`);
-    speakVoice(`ミッション、${activeMissionKey.replace(/_/g, " ")}、をロードしました。`);
+    speakVoice("mission", { name: activeMissionKey.replace(/_/g, " ") });
 }
 
-// ミッションの初期化 (プリセットに戻す)
 function resetMissionsToDefault() {
     playClickSound();
-    if (confirm("全ミッションのデータを初期プリセットに戻しますか？現在のカスタマイズは失われます。")) {
+    if (confirm("全ミッションのデータを初期プリセットに戻しますか？")) {
         missions = JSON.parse(JSON.stringify(INITIAL_MISSIONS));
         activeMissionKey = Object.keys(missions)[0] || "";
         saveData();
         populateMissionSelector();
         renderActiveMission();
-        addLog("[SYSTEM] データベースを初期状態にリセットしました。");
+        addLog("[SYSTEM] データベースを初期リセットしました。");
         speakVoice("データベースを初期化しました。");
     }
 }
 
-// 現在のミッションを消去
 function deleteActiveMission() {
     playClickSound();
-    if (confirm(`ミッション "${activeMissionKey}" を完全に削除しますか？`)) {
+    if (confirm(`ミッション "${activeMissionKey}" を消去しますか？`)) {
         delete missions[activeMissionKey];
         activeMissionKey = Object.keys(missions)[0] || "";
         saveData();
         populateMissionSelector();
         renderActiveMission();
-        addLog(`[SYSTEM] ミッションを消去しました。現在のミッション: ${activeMissionKey}`);
+        addLog(`[SYSTEM] ミッションを消去しました。`);
     }
 }
 
 // ==========================================================================
-// 5. 新規ミッション追加用モーダルの処理
+// 9. 新規ミッション追加モーダル
 // ==========================================================================
 
 function showMissionModal() {
@@ -712,7 +1213,6 @@ function handleCreateMission() {
     let nameInput = newMissionNameInputEl.value.trim();
     if (!nameInput) return;
     
-    // スペースや記号をアンダースコアに整形
     const keyName = nameInput.toUpperCase().replace(/[^A-Z0-9]/g, "_");
     
     if (missions[keyName]) {
@@ -720,7 +1220,6 @@ function handleCreateMission() {
         return;
     }
     
-    // 新規ミッションの空配列を作成
     missions[keyName] = [];
     activeMissionKey = keyName;
     
@@ -729,6 +1228,6 @@ function handleCreateMission() {
     renderActiveMission();
     hideMissionModal();
     
-    addLog(`[MISSION] 新規ミッション: [${keyName}] を作成・初期化しました。`);
-    speakVoice(`新しいミッション、${keyName.replace(/_/g, " ")}、を作成しました。`);
+    addLog(`[MISSION] 新規ミッション: [${keyName}] を作成。`);
+    speakVoice("mission", { name: keyName.replace(/_/g, " ") });
 }

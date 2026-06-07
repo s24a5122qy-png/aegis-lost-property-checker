@@ -84,6 +84,24 @@
                     </div>
                 </div>
 
+                <!-- 出発タイマーパネル -->
+                <div class="cyber-panel timer-panel">
+                    <h2 class="panel-title"><span class="title-decor"></span>DEPARTURE TIMER</h2>
+                    <div class="timer-setup">
+                        <input type="time" id="departure-time-input" class="cyber-input time-input">
+                        <button type="button" id="btn-set-timer" class="cyber-btn btn-small" onclick="setupTimer()">SET TIME</button>
+                        <button type="button" id="btn-abort-timer" class="cyber-btn btn-danger btn-small" onclick="abortTimer()">ABORT</button>
+                    </div>
+                    <div class="timer-display">
+                        <span class="timer-label">TIME REMAINING:</span>
+                        <span class="timer-value countdown-inactive" id="countdown-display">00:00:00.000</span>
+                    </div>
+                    <div class="timer-status">
+                        <span>SYS ALERT:</span>
+                        <span id="timer-alert-status" class="status-normal">INACTIVE</span>
+                    </div>
+                </div>
+
                 <!-- ミッション・コントロール -->
                 <div class="cyber-panel mission-panel">
                     <h2 class="panel-title"><span class="title-decor"></span>ACTIVE MISSION</h2>
@@ -116,6 +134,20 @@
                             <span class="switch-slider"></span>
                         </div>
                     </div>
+                    <div class="setting-row">
+                        <label for="select-ai-core">AI CORE PERSONALITY</label>
+                        <select id="select-ai-core" class="cyber-select select-mini" onchange="changeAICore()">
+                            <option value="AEGIS">A.E.G.I.S. (Standard)</option>
+                            <option value="KRONOS">K.R.O.N.O.S. (Military)</option>
+                            <option value="LUNA">L.U.N.A. (Support)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label for="select-voice-model">VOICE MODEL</label>
+                        <select id="select-voice-model" class="cyber-select select-mini" onchange="changeVoiceModel()">
+                            <option value="default">System Default</option>
+                        </select>
+                    </div>
                     <div class="system-log">
                         <div class="log-title">SYS LOG</div>
                         <div class="log-content" id="log-console">
@@ -132,7 +164,10 @@
                 <div class="cyber-panel gear-panel">
                     <div class="panel-header-actions">
                         <h2 class="panel-title"><span class="title-decor"></span>GEAR CHECKLIST</h2>
-                        <button id="btn-check-all" class="cyber-btn btn-small">ALL SECURE</button>
+                        <div class="header-buttons">
+                            <button type="button" id="btn-activate-camera" class="cyber-btn btn-small btn-primary" onclick="openCameraScanner()">CAMERA SCAN</button>
+                            <button type="button" id="btn-check-all" class="cyber-btn btn-small">ALL SECURE</button>
+                        </div>
                     </div>
                     
                     <div class="gear-categories" id="gear-list-container">
@@ -213,6 +248,41 @@
             <div class="modal-footer">
                 <button id="btn-modal-cancel" class="cyber-btn btn-secondary">ABORT</button>
                 <button id="btn-modal-submit" class="cyber-btn btn-primary">INITIALIZE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- カメラHUDスキャンモーダル -->
+    <div id="camera-modal" class="modal-overlay hidden">
+        <div class="cyber-modal camera-modal-content">
+            <h3 class="modal-title"><span class="title-decor"></span>GEAR HUD SCANNER</h3>
+            <div class="camera-container-viewport">
+                <video id="camera-stream" autoplay playsinline muted></video>
+                <div class="camera-hud-overlay">
+                    <div class="hud-target-box">
+                        <div class="target-cross"></div>
+                        <div class="target-bracket br-tl"></div>
+                        <div class="target-bracket br-tr"></div>
+                        <div class="target-bracket br-bl"></div>
+                        <div class="target-bracket br-br"></div>
+                    </div>
+                    <div class="hud-grid-dots"></div>
+                    <div class="hud-text-top-left">SCAN MODE: OBJ_DETECTION</div>
+                    <div class="hud-text-top-right" id="hud-fps">FPS: 30.00</div>
+                    <div class="hud-text-bottom-left" id="hud-status">STATE: STANDBY</div>
+                    <div class="hud-text-bottom-right">MATRIX_V_1.2</div>
+                    <div class="scanner-bar"></div>
+                </div>
+                <div id="camera-flash" class="camera-flash-effect"></div>
+            </div>
+            
+            <div class="scan-results-log" id="scan-results-log">
+                <div class="analysis-status">[SYS] INITIALIZING OPTICAL RECOGNITION...</div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="btn-camera-close" class="cyber-btn btn-secondary" onclick="closeCameraScanner()">ABORT</button>
+                <button type="button" id="btn-camera-scan" class="cyber-btn btn-primary" onclick="triggerOpticalScan()">RUN SCAN</button>
             </div>
         </div>
     </div>

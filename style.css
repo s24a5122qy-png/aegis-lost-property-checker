@@ -1137,6 +1137,312 @@ input:checked + .switch-slider:before {
 }
 
 /* ==========================================================================
+   追加機能（V1.2.0）: AIコア連動, 出発タイマー, カメラHUDスキャナー
+   ========================================================================== */
+
+/* AIコア テーマ連動 (変数の上書きによる色変更) */
+body.ai-core-kronos {
+    --neon-cyan: var(--neon-red);
+    --glow-cyan: var(--glow-red);
+    --border-color: rgba(255, 0, 85, 0.2);
+    --border-glow: rgba(255, 0, 85, 0.4);
+}
+body.ai-core-luna {
+    --neon-cyan: #ff00ff; /* ネオンピンク */
+    --glow-cyan: 0 0 10px rgba(255, 0, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.2);
+    --border-color: rgba(255, 0, 255, 0.2);
+    --border-glow: rgba(255, 0, 255, 0.4);
+}
+
+/* VOICE MODEL ドロップダウン用ミニセレクト */
+.select-mini {
+    max-width: 150px;
+    padding: 6px;
+    font-size: 11px;
+}
+
+/* 出発タイマーパネル */
+.timer-panel {
+    border-color: rgba(0, 242, 254, 0.15);
+}
+
+.timer-setup {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.time-input {
+    flex-grow: 1;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.timer-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 242, 254, 0.1);
+    padding: 15px 10px;
+    margin-bottom: 12px;
+    position: relative;
+}
+
+.timer-label {
+    font-size: 9px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+}
+
+.timer-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-family: 'Orbitron', monospace;
+    transition: all 0.3s;
+}
+
+.countdown-inactive {
+    color: var(--text-muted);
+    text-shadow: none;
+}
+
+.countdown-active {
+    color: var(--neon-cyan);
+    text-shadow: var(--glow-cyan);
+}
+
+.timer-status {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 3px solid var(--neon-cyan);
+}
+
+.status-normal {
+    color: var(--text-secondary);
+}
+
+.status-alert {
+    color: var(--neon-red);
+    text-shadow: var(--glow-red);
+    font-weight: bold;
+    animation: flash 1s infinite;
+}
+
+/* RED ALERT 緊急点滅エフェクト */
+.red-alert-active {
+    animation: red-alert-flash 1.5s infinite alternate;
+}
+
+@keyframes red-alert-flash {
+    0% {
+        box-shadow: inset 0 0 40px rgba(255, 0, 85, 0.2);
+        background-color: rgba(255, 0, 85, 0.02);
+    }
+    100% {
+        box-shadow: inset 0 0 100px rgba(255, 0, 85, 0.4), inset 0 0 200px rgba(255, 0, 85, 0.2);
+        background-color: rgba(255, 0, 85, 0.08);
+    }
+}
+
+.red-alert-active .timer-value {
+    color: var(--neon-red) !important;
+    text-shadow: var(--glow-red) !important;
+}
+
+.red-alert-active .timer-status {
+    border-left-color: var(--neon-red);
+}
+
+/* カメラHUDモーダル */
+.camera-modal-content {
+    max-width: 600px !important;
+    width: 95% !important;
+}
+
+.camera-container-viewport {
+    width: 100%;
+    height: 340px;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 0 20px rgba(0, 242, 254, 0.2);
+}
+
+#camera-stream {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-hud-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 3px rgba(0, 242, 254, 0.5);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* HUDのテキスト配置 */
+.hud-text-top-left, .hud-text-top-right, .hud-text-bottom-left, .hud-text-bottom-right {
+    position: absolute;
+    letter-spacing: 1px;
+}
+
+.hud-text-top-left { top: 15px; left: 15px; }
+.hud-text-top-right { top: 15px; right: 15px; }
+.hud-text-bottom-left { bottom: 15px; left: 15px; }
+.hud-text-bottom-right { bottom: 15px; right: 15px; }
+
+/* ターゲットボックス照準 */
+.hud-target-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120px;
+    height: 120px;
+    transform: translate(-50%, -50%);
+}
+
+.target-cross {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translate(-50%, -50%);
+}
+
+.target-cross::before, .target-cross::after {
+    content: '';
+    position: absolute;
+    background: var(--neon-cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.target-cross::before {
+    top: 4px; left: 0; width: 10px; height: 2px;
+}
+
+.target-cross::after {
+    top: 0; left: 4px; width: 2px; height: 10px;
+}
+
+/* 照準の四隅のブラケット */
+.target-bracket {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--neon-cyan);
+    filter: drop-shadow(0 0 3px var(--neon-cyan));
+}
+
+.br-tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+.br-tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+.br-bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+.br-br { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+/* 点線のスキャンライン */
+.hud-grid-dots {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(rgba(0, 242, 254, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* スキャナーのアニメーションレーザーバー */
+.scanner-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to bottom, transparent, var(--neon-cyan), transparent);
+    box-shadow: var(--glow-cyan);
+    animation: camera-laser-sweep 3s ease-in-out infinite;
+}
+
+@keyframes camera-laser-sweep {
+    0%, 100% { top: 5%; }
+    50% { top: 95%; }
+}
+
+/* シャッターフラッシュ効果 */
+.camera-flash-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.camera-flash-effect.active {
+    animation: camera-shutter-flash 0.4s ease-out 1;
+}
+
+@keyframes camera-shutter-flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ダミー解析結果ログ */
+.scan-results-log {
+    height: 80px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--border-color);
+    margin: 15px 0;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--neon-cyan);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.scan-results-log::-webkit-scrollbar {
+    width: 4px;
+}
+
+.scan-results-log::-webkit-scrollbar-thumb {
+    background: rgba(0, 242, 254, 0.2);
+}
+
+.log-item-match {
+    color: var(--neon-green);
+    text-shadow: var(--glow-green);
+}
+
+.header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* ==========================================================================
    メディアクエリ (レスポンシブ対応)
    ========================================================================== */
 

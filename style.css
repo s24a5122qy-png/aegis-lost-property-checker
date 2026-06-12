@@ -1443,6 +1443,237 @@ body.ai-core-luna {
 }
 
 /* ==========================================================================
+   追加機能（V1.3.0）: Geolocation警告, 実績システム, ストリーク
+   ========================================================================== */
+
+/* 位置情報センサーUI */
+.geolocation-panel {
+    border-color: rgba(0, 242, 254, 0.15);
+}
+
+.geo-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.cyber-switch-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.geo-display {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 242, 254, 0.1);
+    padding: 12px;
+    width: 100%;
+}
+
+.geo-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.geo-row:last-child {
+    margin-bottom: 0;
+}
+
+.status-breach {
+    color: var(--neon-orange);
+    text-shadow: var(--glow-orange);
+    font-weight: bold;
+    animation: flash 1s infinite;
+}
+
+/* 位置情報警告（ハザードオレンジ）全体の演出 */
+body.geo-breach-active {
+    animation: geo-breach-flash 1.5s infinite alternate;
+}
+
+@keyframes geo-breach-flash {
+    0% {
+        box-shadow: inset 0 0 40px rgba(255, 158, 0, 0.2);
+        background-color: rgba(255, 158, 0, 0.02);
+    }
+    100% {
+        box-shadow: inset 0 0 100px rgba(255, 158, 0, 0.4), inset 0 0 200px rgba(255, 158, 0, 0.2);
+        background-color: rgba(255, 158, 0, 0.08);
+    }
+}
+
+body.geo-breach-active #geo-status-value {
+    color: var(--neon-orange) !important;
+    text-shadow: var(--glow-orange) !important;
+}
+
+/* 実績 ＆ ストリークUI */
+.streak-container {
+    display: flex;
+    align-items: center;
+}
+
+.streak-badge {
+    background: rgba(255, 158, 0, 0.1);
+    border: 1px solid var(--neon-orange);
+    color: var(--neon-orange);
+    text-shadow: var(--glow-orange);
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 10% 100%, 0 70%);
+    animation: pulse 2s infinite alternate;
+}
+
+.stats-overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.stat-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 242, 254, 0.08);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 9px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.stat-val {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--neon-cyan);
+    text-shadow: var(--glow-cyan);
+}
+
+.achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(0, 242, 254, 0.05);
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+.achievement-item.locked {
+    opacity: 0.35;
+    filter: grayscale(100%);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.achievement-item.unlocked {
+    opacity: 1;
+    filter: none;
+    border-color: rgba(57, 255, 20, 0.3);
+    background: rgba(57, 255, 20, 0.03);
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.05);
+}
+
+.achievement-item.unlocked .ach-medal {
+    animation: pulse 1s infinite alternate;
+}
+
+.ach-medal {
+    font-size: 20px;
+    filter: drop-shadow(0 0 5px rgba(255, 200, 0, 0.5));
+}
+
+.ach-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ach-title {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+}
+
+.achievement-item.unlocked .ach-title {
+    color: var(--neon-green);
+    text-shadow: var(--glow-green);
+}
+
+.ach-desc {
+    font-size: 9px;
+    color: var(--text-secondary);
+}
+
+/* アチーブメント解放通知ポップアップ */
+.achievement-popup {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    background: var(--bg-dark);
+    border: 2px solid var(--neon-green);
+    box-shadow: var(--glow-green);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 999;
+    clip-path: polygon(0 0, 95% 0, 100% 20%, 100% 100%, 5% 100%, 0 80%);
+    transform: translateX(120%);
+    transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.achievement-popup.show {
+    transform: translateX(0);
+}
+
+.pop-medal {
+    font-size: 24px;
+    animation: rotate-cw 10s linear infinite;
+}
+
+.pop-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pop-title {
+    font-size: 9px;
+    font-weight: bold;
+    color: var(--neon-green);
+    letter-spacing: 2px;
+}
+
+.pop-name {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+/* ==========================================================================
    メディアクエリ (レスポンシブ対応)
    ========================================================================== */
 

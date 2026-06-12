@@ -1,5 +1,5 @@
 /* ==========================================================================
-   A.E.G.I.S. - APPLICATION ENGINE & LOGIC (JS) - VERSION 1.2.0
+   A.E.G.I.S. - APPLICATION ENGINE & LOGIC (JS) - VERSION 1.3.0
    ========================================================================== */
 
 // --- AIコア人格とセリフの辞書定義 ---
@@ -16,7 +16,10 @@ const AI_CORES = {
             warning: "警告。出発予定時刻まで間もなくです。準備を確認してください。",
             camera_scan: "光学スキャンを開始。物体を分析しています。",
             camera_success: "スキャン完了。新たに {count} 個の装備を検知、確保しました。",
-            timer_set: "出発時刻を {time} に設定。残り時間、約 {minutes} 分です。"
+            timer_set: "出発時刻を {time} に設定。残り時間、約 {minutes} 分です。",
+            geo_breach: "警告。セーフゾーンから離脱。未確保の装備があります。直ちに確認してください。",
+            streak: "ストリーク、{streak} 回達成。素晴らしい規律です、エージェント。",
+            streak_reset: "装備未確保での出撃を検知。ストリーク記録がリセットされました。"
         }
     },
     "KRONOS": {
@@ -29,9 +32,12 @@ const AI_CORES = {
             mission: "作戦指令、{name}、を受領。チェックリストをロードする。",
             complete: "全装備の確保完了を確認。直ちに出撃せよ、エージェント。",
             warning: "警告！出発限界時刻まで残りわずか！作戦準備を直ちに完了させよ。遅れることは許されない！",
-            camera_scan: "光学レーダースキャン作動。不審物を検出する。",
+            camera_scan: "光学スキャン作動。不審物を検出する。",
             camera_success: "ターゲットロック完了。装備 {count} ユニットを確保した。",
-            timer_set: "出発時刻を {time} にロック。残り {minutes} 分。遅刻は許されない。"
+            timer_set: "出発時刻を {time} にロック。残り {minutes} 分。遅刻は許されない。",
+            geo_breach: "警告！防衛境界線（セーフゾーン）を越えた！未確保の装備がある。ただちに引き返せ！",
+            streak: "ストリーク {streak} 到達。見事な装備管理だ。引き続き軍紀を維持せよ。",
+            streak_reset: "作戦失敗。装備未確保での境界越え。連続記録をリセットする。怠慢だ。"
         }
     },
     "LUNA": {
@@ -46,7 +52,10 @@ const AI_CORES = {
             warning: "大変大変！もうすぐ出発の時間だよ！忘れ物はない？急ごう！",
             camera_scan: "カメラでスキャン中だよー！何があるかな？",
             camera_success: "じゃじゃーん！一気に {count} 個も見つけちゃった！",
-            timer_set: "出発時間は {time} だね！あと {minutes} 分だよ！がんばろー！"
+            timer_set: "出発時間は {time} だね！あと {minutes} 分だよ！がんばろー！",
+            geo_breach: "あっ！お家から出ちゃったみたい！まだ忘れ物があるよ、戻って戻ってー！",
+            streak: "すごーい！ストリーク {streak} 回達成！忘れ物ゼロの天才だね！",
+            streak_reset: "あちゃー、忘れ物があるのにお出かけしちゃった。連続記録はリセットだよー、次はがんばろ！"
         }
     }
 };
@@ -106,6 +115,19 @@ let alarmInterval = null;
 // カメラ
 let cameraStream = null;
 
+// Geolocation (位置情報)
+let homeCoords = { lat: null, lon: null };
+let geoSimulated = false;
+let geoBreachActive = false;
+let geoAlarmOsc = null;
+let geoAlarmInterval = null;
+let watchId = null;
+
+// 実績 & ストリーク
+let achievements = { first: false, streak3: false, redline: false, weather: false };
+let stats = { totalMissions: 0, maxStreak: 0 };
+let streakCount = 0;
+
 // --- DOM要素の取得 ---
 const timeEl = document.getElementById("current-time");
 const systemStatusEl = document.getElementById("system-status");
@@ -150,6 +172,13 @@ document.addEventListener("DOMContentLoaded", () => {
     applyWeatherEffects();
     renderActiveMission();
     
+    // 位置情報イニシャライズ
+    initGeolocation();
+    
+    // UIへの実績・統計のレンダリング
+    renderAchievements();
+    updateStatsDisplay();
+    
     // イベントリスナー登録
     missionSelectEl.addEventListener("change", handleMissionChange);
     btnAddMissionEl.addEventListener("click", showMissionModal);
@@ -166,14 +195,13 @@ document.addEventListener("DOMContentLoaded", () => {
         window.speechSynthesis.onvoiceschanged = () => {
             loadVoiceModels();
         };
-        // 一部のブラウザ対策で初回に即読み込み
         loadVoiceModels();
     }
     
     // 初回インタラクション時にAudioContextを初期化するためのトリガー
     document.body.addEventListener("click", initAudioContext, { once: true });
     
-    addLog("[SYSTEM] A.E.G.S. V1.2.0 Boot sequence completed. Click to activate audio.");
+    addLog("[SYSTEM] A.E.G.I.S. V1.3.0 Boot sequence completed.");
 });
 
 // 時計の更新
@@ -206,12 +234,36 @@ function loadData() {
     } else {
         activeMissionKey = Object.keys(missions)[0] || "";
     }
+    
+    // 自宅緯度経度
+    const savedHome = localStorage.getItem("aegis_home_coords");
+    if (savedHome) {
+        homeCoords = JSON.parse(savedHome);
+    }
+    
+    // 実績・統計
+    const savedAch = localStorage.getItem("aegis_achievements");
+    if (savedAch) {
+        achievements = JSON.parse(savedAch);
+    }
+    const savedStats = localStorage.getItem("aegis_stats");
+    if (savedStats) {
+        stats = JSON.parse(savedStats);
+    }
+    const savedStreak = localStorage.getItem("aegis_streak");
+    if (savedStreak) {
+        streakCount = parseInt(savedStreak, 10) || 0;
+    }
 }
 
 // データの保存
 function saveData() {
     localStorage.setItem("aegis_missions", JSON.stringify(missions));
     localStorage.setItem("aegis_active_mission", activeMissionKey);
+    localStorage.setItem("aegis_home_coords", JSON.stringify(homeCoords));
+    localStorage.setItem("aegis_achievements", JSON.stringify(achievements));
+    localStorage.setItem("aegis_stats", JSON.stringify(stats));
+    localStorage.setItem("aegis_streak", streakCount.toString());
 }
 
 // システムログ出力
@@ -233,7 +285,6 @@ function initAudioContext() {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         addLog("[AUDIO] Audio feedback systems online.");
         
-        // 最初のインタラクションで歓迎音と音声合成を実行
         setTimeout(() => {
             playStartSound();
             speakVoice("boot");
@@ -362,8 +413,6 @@ function playShutterSound() {
     if (!isSoundEnabled()) return;
     
     const now = audioCtx.currentTime;
-    
-    // ノイズバッファの生成
     const bufferSize = audioCtx.sampleRate * 0.1;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -386,7 +435,6 @@ function playShutterSound() {
     filter.connect(noiseGain);
     noiseGain.connect(audioCtx.destination);
     
-    // サイン波ビープ
     const osc = audioCtx.createOscillator();
     const oscGain = audioCtx.createGain();
     
@@ -403,7 +451,7 @@ function playShutterSound() {
     osc.stop(now + 0.08);
 }
 
-// 6. アラームサイレン
+// 6. アラームサイレン (タイマー用)
 function playAlarmSound() {
     if (!isSoundEnabled() || alarmOsc) return;
     
@@ -441,6 +489,68 @@ function stopAlarmSound() {
     }
 }
 
+// 7. GPS警告サイレン (不協和音)
+function playGeoAlarmSound() {
+    if (!isSoundEnabled() || geoAlarmOsc) return;
+    
+    geoAlarmOsc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    geoAlarmOsc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    geoAlarmOsc.type = 'sawtooth';
+    geoAlarmOsc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    
+    let low = true;
+    geoAlarmInterval = setInterval(() => {
+        if (!audioCtx || !geoAlarmOsc) return;
+        const targetFreq = low ? 150 : 250;
+        geoAlarmOsc.frequency.setValueAtTime(targetFreq, audioCtx.currentTime);
+        low = !low;
+    }, 250);
+    
+    geoAlarmOsc.start();
+}
+
+function stopGeoAlarmSound() {
+    if (geoAlarmOsc) {
+        try {
+            geoAlarmOsc.stop();
+        } catch(e) {}
+        geoAlarmOsc = null;
+    }
+    if (geoAlarmInterval) {
+        clearInterval(geoAlarmInterval);
+        geoAlarmInterval = null;
+    }
+}
+
+// 8. 実績アンロックファンファーレ
+function playAchievementSound() {
+    if (!isSoundEnabled()) return;
+    const now = audioCtx.currentTime;
+    const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
+    
+    freqs.forEach((freq, index) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + (index * 0.05));
+        
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.12, now + (index * 0.05) + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (index * 0.05) + 0.3);
+        
+        osc.start(now);
+        osc.stop(now + (index * 0.05) + 0.45);
+    });
+}
+
 // 音声読み上げ（AIコアごとのセリフ・トーン）
 function speakVoice(textKey, variables = {}) {
     if (!isVoiceEnabled()) return;
@@ -450,7 +560,6 @@ function speakVoice(textKey, variables = {}) {
     const core = AI_CORES[currentAICore];
     let phrase = core.phrases[textKey] || textKey;
     
-    // 変数の置換
     Object.keys(variables).forEach(key => {
         phrase = phrase.replace(`{${key}}`, variables[key]);
     });
@@ -479,7 +588,6 @@ function loadVoiceModels() {
     
     select.innerHTML = '<option value="default">System Default</option>';
     
-    // 日本語の音声を抽出
     const jaVoices = voicesList.filter(v => v.lang.startsWith("ja"));
     
     jaVoices.forEach(v => {
@@ -525,13 +633,10 @@ window.changeAICore = function() {
     
     currentAICore = select.value;
     
-    // ボディクラスを変更してCSSテーマ色を連動
     document.body.className = `ai-core-${currentAICore.toLowerCase()}`;
-    if (redAlertActive) {
-        document.body.classList.add("red-alert-active");
-    }
+    if (redAlertActive) document.body.classList.add("red-alert-active");
+    if (geoBreachActive) document.body.classList.add("geo-breach-active");
     
-    // 適した音声を自動再設定
     autoSelectVoiceForCore();
     
     addLog(`[SYSTEM] AIコア人格を [${AI_CORES[currentAICore].name}] に変更しました。`);
@@ -546,12 +651,12 @@ window.changeVoiceModel = function() {
     
     if (select.value === "default") {
         selectedVoice = null;
-        addLog(`[SYSTEM] 音声モデルをシステムデフォルトに設定しました。`);
+        addLog(`[SYSTEM] 音声モデルをシステムデフォルトに設定。`);
     } else {
         const found = voicesList.find(v => v.name === select.value);
         if (found) {
             selectedVoice = found;
-            addLog(`[SYSTEM] 音声モデルを [${found.name}] に設定しました。`);
+            addLog(`[SYSTEM] 音声モデルを [${found.name}] に設定。`);
             speakVoice("スキャンシステムオンライン。ボイス設定変更を確認。");
         }
     }
@@ -561,14 +666,12 @@ window.changeVoiceModel = function() {
 // 4. 追加機能: 天気管理ロジック
 // ==========================================================================
 
-// 天気の変更
 window.setWeather = function(weather) {
     if (currentWeather === weather) return;
     playClickSound();
     
     currentWeather = weather;
     
-    // ボタンのactive表示切り替え
     const buttons = document.querySelectorAll(".weather-btn");
     buttons.forEach(btn => btn.classList.remove("active"));
     
@@ -581,7 +684,6 @@ window.setWeather = function(weather) {
     renderActiveMission();
 };
 
-// 天気エフェクトを適用（雨具の自動追加・削除）
 function applyWeatherEffects() {
     const list = missions[activeMissionKey];
     if (!list) return;
@@ -706,7 +808,15 @@ function updateTimer() {
         }
         
         addLog(`[TIMER] 出発予定時刻に到達。タイムアップ。`);
-        speakVoice("warning");
+        
+        // タイムアップ時の判定（忘れ物があればストリークリセット）
+        const list = missions[activeMissionKey];
+        const allSecured = list && list.length > 0 && list.every(i => i.checked);
+        if (!allSecured) {
+            resetStreak();
+        } else {
+            speakVoice("complete");
+        }
         return;
     }
     
@@ -736,7 +846,289 @@ function updateTimer() {
 }
 
 // ==========================================================================
-// 6. 追加機能: カメラHUDスキャナー
+// 6. 追加機能: Geolocation 自宅離脱警告センサー
+// ==========================================================================
+
+function initGeolocation() {
+    const statusVal = document.getElementById("geo-status-value");
+    if (!navigator.geolocation) {
+        if (statusVal) statusVal.textContent = "NOT SUPPORTED";
+        return;
+    }
+    
+    if (statusVal) statusVal.textContent = "ACQUIRING...";
+    
+    // 位置の常時監視
+    watchId = navigator.geolocation.watchPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            if (statusVal) {
+                statusVal.textContent = "ONLINE";
+                statusVal.className = "status-normal";
+            }
+            
+            updateDistanceDisplay(lat, lon);
+        },
+        (error) => {
+            addLog(`[GEOLOCATION] 位置情報取得エラー: ${error.message}`);
+            if (statusVal) {
+                statusVal.textContent = "ERROR";
+                statusVal.className = "status-alert";
+            }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+// 緯度経度から2地点間の距離を求める（ハバーシン公式、メートル単位）
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // 地球の半径 (m)
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    
+    return R * c;
+}
+
+// 自宅との距離表示の更新
+function updateDistanceDisplay(lat, lon) {
+    const distVal = document.getElementById("geo-distance-value");
+    if (!homeCoords.lat || !homeCoords.lon) {
+        if (distVal) distVal.textContent = "HOME NOT SET";
+        return;
+    }
+    
+    const distance = getDistance(lat, lon, homeCoords.lat, homeCoords.lon);
+    if (distVal) distVal.textContent = `${distance.toFixed(1)}m`;
+    
+    // 実GPSでの30m離脱警告判定
+    checkSafeZoneBreach(distance);
+}
+
+// 自宅を設定
+window.setHomeLocation = function() {
+    playClickSound();
+    if (!navigator.geolocation) {
+        alert("位置情報に対応していません。");
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            homeCoords.lat = position.coords.latitude;
+            homeCoords.lon = position.coords.longitude;
+            saveData();
+            
+            addLog(`[GEOLOCATION] 自宅（セーフゾーン）を設定: LAT ${homeCoords.lat.toFixed(4)}, LON ${homeCoords.lon.toFixed(4)}`);
+            speakVoice("自宅をセーフゾーンに設定しました。");
+            
+            updateDistanceDisplay(homeCoords.lat, homeCoords.lon);
+        },
+        (error) => {
+            alert("位置情報を取得できませんでした。: " + error.message);
+        }
+    );
+};
+
+// 離脱シミュレータのトグル
+window.toggleGeoSimulation = function(checked) {
+    playClickSound();
+    geoSimulated = checked;
+    
+    addLog(`[GEOLOCATION] 離脱シミュレーションを [${checked ? "ON" : "OFF"}] に設定。`);
+    
+    if (geoSimulated) {
+        checkSafeZoneBreach(50.0); // 仮想的に50m離れた状態にする
+    } else {
+        // 自宅距離測定に復帰させるため、GPSが取得できていれば再計算
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const distance = getDistance(position.coords.latitude, position.coords.longitude, homeCoords.lat, homeCoords.lon);
+                checkSafeZoneBreach(distance);
+            }, () => checkSafeZoneBreach(0.0));
+        } else {
+            checkSafeZoneBreach(0.0);
+        }
+    }
+};
+
+// セーフゾーン境界の検証
+function checkSafeZoneBreach(distance) {
+    const statusVal = document.getElementById("geo-status-value");
+    
+    // 自宅設定なし、または離脱判定外なら何もしない
+    const isLeaved = distance > 30.0;
+    
+    const list = missions[activeMissionKey];
+    const allSecured = list && list.length > 0 && list.every(i => i.checked);
+    
+    if (isLeaved && !allSecured) {
+        // 自宅を離れていて、かつ忘れ物がある場合 ➔ 警告発動
+        if (!geoBreachActive) {
+            geoBreachActive = true;
+            document.body.classList.add("geo-breach-active");
+            if (statusVal) {
+                statusVal.textContent = "BREACHED";
+                statusVal.className = "status-breach";
+            }
+            addLog(`[GEOLOCATION] 警告: セーフゾーン離脱を検知！未確保の装備があります！`);
+            speakVoice("geo_breach");
+            playGeoAlarmSound();
+            
+            // 警告状態でセーフゾーンを出たため、ストリークは即時リセット
+            resetStreak();
+        }
+    } else {
+        // 自宅内に戻る、または全て確保完了時 ➔ 警告解除
+        if (geoBreachActive) {
+            geoBreachActive = false;
+            document.body.classList.remove("geo-breach-active");
+            if (statusVal) {
+                statusVal.textContent = geoSimulated ? "ONLINE (SIM)" : "ONLINE";
+                statusVal.className = "status-normal";
+            }
+            addLog(`[GEOLOCATION] セーフゾーン防衛警報を解除。`);
+            stopGeoAlarmSound();
+            
+            // 離脱中（シミュレート含む）に100%確保してクリアされた場合、ストリークカウントのチャンス
+            if (isLeaved && allSecured) {
+                // 完了トリガーを実行
+                triggerFullCompletion();
+            }
+        }
+    }
+}
+
+// ==========================================================================
+// 7. 追加機能: 実績 ＆ 連続成功システム
+// ==========================================================================
+
+// 実績のUI描画
+function renderAchievements() {
+    Object.keys(achievements).forEach(id => {
+        const el = document.getElementById(`ach-${id}`);
+        if (el) {
+            if (achievements[id]) {
+                el.className = "achievement-item unlocked";
+            } else {
+                el.className = "achievement-item locked";
+            }
+        }
+    });
+}
+
+// 実績のアンロック判定
+function unlockAchievement(id, name) {
+    if (achievements[id]) return; // 既に解除済み
+    
+    achievements[id] = true;
+    saveData();
+    renderAchievements();
+    
+    // 解放ポップアップの演出
+    const popup = document.getElementById("achievement-popup");
+    const popName = document.getElementById("pop-achievement-name");
+    
+    if (popName) popName.textContent = name;
+    if (popup) {
+        popup.classList.add("show");
+        popup.classList.remove("hidden");
+        
+        playAchievementSound();
+        addLog(`[ACHIEVEMENT] 実績解放: [${name}] !`);
+        
+        // 人格ごとに実績解除の音声アナウンス
+        speakVoice(`実績、${name}、のロックを解除。追加データをロードしました。`);
+        
+        setTimeout(() => {
+            popup.classList.remove("show");
+            setTimeout(() => popup.classList.add("hidden"), 500);
+        }, 4000);
+    }
+}
+
+// 統計表示の更新
+function updateStatsDisplay() {
+    const totalEl = document.getElementById("stats-total-count");
+    const maxEl = document.getElementById("stats-max-streak");
+    const streakBadge = document.getElementById("streak-badge-display");
+    
+    if (totalEl) totalEl.textContent = stats.totalMissions;
+    if (maxEl) maxEl.textContent = stats.maxStreak;
+    if (streakBadge) {
+        streakBadge.textContent = `🔥 ${streakCount} STREAK`;
+        // ストリーク数に応じて発光を変化
+        if (streakCount > 0) {
+            streakBadge.style.filter = `drop-shadow(0 0 ${Math.min(streakCount * 3, 15)}px var(--neon-orange))`;
+        } else {
+            streakBadge.style.filter = "none";
+        }
+    }
+}
+
+// ストリークのカウントアップ
+function incrementStreak() {
+    streakCount++;
+    if (streakCount > stats.maxStreak) {
+        stats.maxStreak = streakCount;
+    }
+    stats.totalMissions++;
+    saveData();
+    updateStatsDisplay();
+    
+    addLog(`[STREAK] ミッション成功！連続成功記録: ${streakCount} 回`);
+    
+    // 音声でストリーク数の称賛
+    if (streakCount === 3 || streakCount === 5 || streakCount === 10) {
+        speakVoice("streak", { streak: streakCount });
+    }
+    
+    // 実績アンロックの検証
+    checkAchievementsUnlocks();
+}
+
+// ストリークのリセット
+function resetStreak() {
+    if (streakCount === 0) return;
+    
+    streakCount = 0;
+    saveData();
+    updateStatsDisplay();
+    
+    addLog(`[STREAK] 装備の未確保により、連続成功記録がリセットされました。`);
+    speakVoice("streak_reset");
+}
+
+// 実績解除チェック
+function checkAchievementsUnlocks() {
+    // 1. FIRST EXPEDITION
+    if (stats.totalMissions >= 1) {
+        unlockAchievement("first", "FIRST EXPEDITION");
+    }
+    // 2. MASTER AGENT (3 Streak)
+    if (streakCount >= 3) {
+        unlockAchievement("streak3", "MASTER AGENT");
+    }
+    // 3. RED LINE SURVIVOR (RED ALERT中にクリア)
+    if (redAlertActive) {
+        unlockAchievement("redline", "RED LINE SURVIVOR");
+    }
+    // 4. WEATHERPROOF (雨の日に傘を含めて完了)
+    if (currentWeather === "RAINY") {
+        unlockAchievement("weather", "WEATHERPROOF");
+    }
+}
+
+// ==========================================================================
+// 8. 追加機能: カメラHUDスキャナー
 // ==========================================================================
 
 window.openCameraScanner = function() {
@@ -863,7 +1255,6 @@ window.triggerOpticalScan = function() {
         if (status) status.textContent = "STATE: COMPLETE";
         speakVoice("camera_success", { count: countToSecure });
         
-        // 全確保判定
         const allSecured = list.every(i => i.checked);
         if (allSecured) {
             setTimeout(() => {
@@ -875,10 +1266,9 @@ window.triggerOpticalScan = function() {
 };
 
 // ==========================================================================
-// 7. UIレンダリング & 基本イベント制御
+// 9. UIレンダリング & 基本イベント制御
 // ==========================================================================
 
-// ミッション選択ドロップダウンの更新
 function populateMissionSelector() {
     missionSelectEl.innerHTML = "";
     
@@ -898,7 +1288,6 @@ function getFriendlyMissionName(key) {
     return `MISSION: [ ${formatted} ]`;
 }
 
-// アクティブなミッションとそのアイテムリストを描画
 function renderActiveMission() {
     const gearList = missions[activeMissionKey];
     
@@ -1037,7 +1426,7 @@ function updateScanConsole(total, secured, missing) {
 }
 
 // ==========================================================================
-// 8. データ操作イベントハンドラー
+// 10. データ操作イベントハンドラー
 // ==========================================================================
 
 window.toggleGearCheck = function(itemId, checked) {
@@ -1078,7 +1467,6 @@ function secureAllGear() {
 }
 
 function triggerFullCompletion() {
-    // タイマーおよびアラームを停止
     if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
@@ -1096,6 +1484,9 @@ function triggerFullCompletion() {
     
     playSuccessSound();
     speakVoice("complete");
+    
+    // ストリーク数の加算
+    incrementStreak();
     
     document.body.classList.add("system-complete-flash");
     setTimeout(() => {
@@ -1176,7 +1567,16 @@ function resetMissionsToDefault() {
         saveData();
         populateMissionSelector();
         renderActiveMission();
-        addLog("[SYSTEM] データベースを初期リセットしました。");
+        
+        // 実績・ストリークも初期化
+        achievements = { first: false, streak3: false, redline: false, weather: false };
+        stats = { totalMissions: 0, maxStreak: 0 };
+        streakCount = 0;
+        saveData();
+        renderAchievements();
+        updateStatsDisplay();
+        
+        addLog("[SYSTEM] データベースとアチーブメントをリセットしました。");
         speakVoice("データベースを初期化しました。");
     }
 }
@@ -1194,7 +1594,7 @@ function deleteActiveMission() {
 }
 
 // ==========================================================================
-// 9. 新規ミッション追加モーダル
+// 11. 新規ミッション追加モーダル
 // ==========================================================================
 
 function showMissionModal() {

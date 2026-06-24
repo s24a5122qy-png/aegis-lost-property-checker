@@ -1674,6 +1674,211 @@ body.geo-breach-active #geo-status-value {
 }
 
 /* ==========================================================================
+   追加機能（V1.4.0）: 装備エネルギー＆積載重量チェック, ホロ・ショップ
+   ========================================================================== */
+
+/* UI Theme: CYBER HACKER */
+body.theme-cyber-hacker {
+    --neon-cyan: #dfff00; /* アシッドイエロー */
+    --glow-cyan: 0 0 10px rgba(223, 255, 0, 0.5), 0 0 20px rgba(223, 255, 0, 0.2);
+    --border-color: rgba(223, 255, 0, 0.2);
+    --border-glow: rgba(223, 255, 0, 0.4);
+}
+/* UI Theme: COBALT BLUE */
+body.theme-cobalt-blue {
+    --neon-cyan: #0066ff; /* コバルトブルー */
+    --glow-cyan: 0 0 10px rgba(0, 102, 255, 0.5), 0 0 20px rgba(0, 102, 255, 0.2);
+    --border-color: rgba(0, 102, 255, 0.2);
+    --border-glow: rgba(0, 102, 255, 0.4);
+}
+/* UI Theme: PURPLE HAZE */
+body.theme-purple-haze {
+    --neon-cyan: #b026ff; /* ネオンバイオレット */
+    --glow-cyan: 0 0 10px rgba(176, 38, 255, 0.5), 0 0 20px rgba(176, 38, 255, 0.2);
+    --border-color: rgba(176, 38, 255, 0.2);
+    --border-glow: rgba(176, 38, 255, 0.4);
+}
+
+/* クレジットバッジ */
+.credit-badge {
+    background: rgba(0, 242, 254, 0.1);
+    color: var(--neon-cyan);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--glow-cyan);
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border-radius: 3px;
+    text-shadow: var(--glow-cyan);
+}
+
+/* エネルギー・重量メーター */
+.gear-status-meters {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(5, 8, 17, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+.meter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+.meter-label {
+    font-size: 9px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+.meter-value {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+#energy-status-display.warning {
+    color: var(--neon-orange);
+    text-shadow: var(--glow-orange);
+}
+#energy-status-display.critical {
+    color: var(--neon-red);
+    text-shadow: var(--glow-red);
+}
+#energy-status-display.secured {
+    color: var(--neon-green);
+    text-shadow: var(--glow-green);
+}
+
+/* 装備リスト内のアイテムスタイル拡張 */
+.gear-weight-badge {
+    font-size: 9px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-left: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.gear-battery-icon {
+    font-size: 14px;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: filter 0.3s ease;
+    user-select: none;
+}
+.gear-battery-icon.charged {
+    color: var(--neon-green);
+    filter: drop-shadow(0 0 3px rgba(57, 255, 20, 0.8));
+}
+.gear-battery-icon.low {
+    color: var(--neon-red);
+    filter: drop-shadow(0 0 3px rgba(255, 0, 85, 0.8));
+    animation: pulse-red 1s infinite alternate;
+}
+@keyframes pulse-red {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* 充電不足時に装備チェックボックスを無効化するスタイル */
+input[type="checkbox"]:disabled + .checkbox-custom {
+    border-color: rgba(255, 0, 85, 0.2);
+    cursor: not-allowed;
+    background: rgba(255, 0, 85, 0.05);
+}
+
+/* ホロ・ショップ */
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+.shop-card {
+    background: rgba(5, 8, 17, 0.6);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    min-height: 140px;
+    position: relative;
+    overflow: hidden;
+}
+.shop-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--neon-cyan);
+    opacity: 0.5;
+}
+.shop-card:hover {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.15);
+}
+.shop-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.shop-card-tag {
+    font-size: 8px;
+    font-weight: bold;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 1px 4px;
+    border-radius: 2px;
+}
+.shop-card-price {
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--neon-orange);
+    text-shadow: var(--glow-orange);
+}
+.shop-card-title {
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+.shop-card-desc {
+    font-size: 8px;
+    color: var(--text-secondary);
+    line-height: 1.2;
+    margin-bottom: 10px;
+    flex-grow: 1;
+}
+.shop-buy-btn {
+    width: 100%;
+    padding: 4px 0;
+    font-size: 10px;
+    font-weight: bold;
+}
+.shop-buy-btn.applied {
+    background: rgba(57, 255, 20, 0.15) !important;
+    border-color: var(--neon-green) !important;
+    color: var(--neon-green) !important;
+    text-shadow: var(--glow-green) !important;
+    cursor: default;
+}
+.shop-buy-btn.owned {
+    background: rgba(0, 242, 254, 0.1) !important;
+    border-color: var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+}
+
+/* ==========================================================================
    メディアクエリ (レスポンシブ対応)
    ========================================================================== */
 

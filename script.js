@@ -63,30 +63,30 @@ const AI_CORES = {
 // --- 定数と初期データ定義 ---
 const INITIAL_MISSIONS = {
     "DAILY_WORK": [
-        { id: "dw-1", name: "スマートフォン", category: "DEVICE", priority: "CRITICAL", checked: false },
-        { id: "dw-2", name: "財布 (現金/カード)", category: "CREDENTIAL", priority: "CRITICAL", checked: false },
-        { id: "dw-3", name: "自宅の鍵 / キーケース", category: "CREDENTIAL", priority: "CRITICAL", checked: false },
-        { id: "dw-4", name: "交通系ICカード / 定期券", category: "CREDENTIAL", priority: "STANDARD", checked: false },
-        { id: "dw-5", name: "ワイヤレスイヤホン", category: "DEVICE", priority: "STANDARD", checked: false },
-        { id: "dw-6", name: "ハンカチ / ティッシュ", category: "NECESSITY", priority: "STANDARD", checked: false }
+        { id: "dw-1", name: "スマートフォン", category: "DEVICE", priority: "CRITICAL", checked: false, weight: 180, requiresEnergy: true, energyStatus: "charged" },
+        { id: "dw-2", name: "財布 (現金/カード)", category: "CREDENTIAL", priority: "CRITICAL", checked: false, weight: 70, requiresEnergy: false, energyStatus: "charged" },
+        { id: "dw-3", name: "自宅の鍵 / キーケース", category: "CREDENTIAL", priority: "CRITICAL", checked: false, weight: 50, requiresEnergy: false, energyStatus: "charged" },
+        { id: "dw-4", name: "交通系ICカード / 定期券", category: "CREDENTIAL", priority: "STANDARD", checked: false, weight: 10, requiresEnergy: false, energyStatus: "charged" },
+        { id: "dw-5", name: "ワイヤレスイヤホン", category: "DEVICE", priority: "STANDARD", checked: false, weight: 50, requiresEnergy: true, energyStatus: "charged" },
+        { id: "dw-6", name: "ハンカチ / ティッシュ", category: "NECESSITY", priority: "STANDARD", checked: false, weight: 30, requiresEnergy: false, energyStatus: "charged" }
     ],
     "BUSINESS_TRIP": [
-        { id: "bt-1", name: "ノートPC & 充電ケーブル", category: "DEVICE", priority: "CRITICAL", checked: false },
-        { id: "bt-2", name: "スマートフォン & モバイルバッテリー", category: "DEVICE", priority: "CRITICAL", checked: false },
-        { id: "bt-3", name: "財布 & クレジットカード", category: "CREDENTIAL", priority: "CRITICAL", checked: false },
-        { id: "bt-4", name: "社員証 / IDカード", category: "CREDENTIAL", priority: "CRITICAL", checked: false },
-        { id: "bt-5", name: "名刺入れ (十分な枚数)", category: "CREDENTIAL", priority: "STANDARD", checked: false },
-        { id: "bt-6", name: "筆記用具 / メモ帳", category: "NECESSITY", priority: "STANDARD", checked: false },
-        { id: "bt-7", name: "折りたたみ傘", category: "NECESSITY", priority: "OPTIONAL", checked: false }
+        { id: "bt-1", name: "ノートPC & 充電ケーブル", category: "DEVICE", priority: "CRITICAL", checked: false, weight: 1300, requiresEnergy: true, energyStatus: "charged" },
+        { id: "bt-2", name: "スマートフォン & モバイルバッテリー", category: "DEVICE", priority: "CRITICAL", checked: false, weight: 350, requiresEnergy: true, energyStatus: "charged" },
+        { id: "bt-3", name: "財布 & クレジットカード", category: "CREDENTIAL", priority: "CRITICAL", checked: false, weight: 70, requiresEnergy: false, energyStatus: "charged" },
+        { id: "bt-4", name: "社員証 / IDカード", category: "CREDENTIAL", priority: "CRITICAL", checked: false, weight: 20, requiresEnergy: false, energyStatus: "charged" },
+        { id: "bt-5", name: "名刺入れ (十分な枚数)", category: "CREDENTIAL", priority: "STANDARD", checked: false, weight: 50, requiresEnergy: false, energyStatus: "charged" },
+        { id: "bt-6", name: "筆記用具 / メモ帳", category: "NECESSITY", priority: "STANDARD", checked: false, weight: 60, requiresEnergy: false, energyStatus: "charged" },
+        { id: "bt-7", name: "折りたたみ傘", category: "NECESSITY", priority: "OPTIONAL", checked: false, weight: 200, requiresEnergy: false, energyStatus: "charged" }
     ],
     "HOLIDAY_TRAVEL": [
-        { id: "ht-1", name: "スマートフォン & 充電器", category: "DEVICE", priority: "CRITICAL", checked: false },
-        { id: "ht-2", name: "財布 / 身分証明書", category: "CREDENTIAL", priority: "CRITICAL", checked: false },
-        { id: "ht-3", name: "衣類 & 下着 (宿泊数分)", category: "NECESSITY", priority: "CRITICAL", checked: false },
-        { id: "ht-4", name: "モバイルバッテリー", category: "DEVICE", priority: "STANDARD", checked: false },
-        { id: "ht-5", name: "常備薬 / スキンケア用品", category: "NECESSITY", priority: "STANDARD", checked: false },
-        { id: "ht-6", name: "カメラ", category: "DEVICE", priority: "OPTIONAL", checked: false },
-        { id: "ht-7", name: "ガイドブック / 旅行日程表", category: "OTHER", priority: "OPTIONAL", checked: false }
+        { id: "ht-1", name: "スマートフォン & 充電器", category: "DEVICE", priority: "CRITICAL", checked: false, weight: 230, requiresEnergy: true, energyStatus: "charged" },
+        { id: "ht-2", name: "財布 / 身分証明書", category: "CREDENTIAL", priority: "CRITICAL", checked: false, weight: 80, requiresEnergy: false, energyStatus: "charged" },
+        { id: "ht-3", name: "衣類 & 下着 (宿泊数分)", category: "NECESSITY", priority: "CRITICAL", checked: false, weight: 800, requiresEnergy: false, energyStatus: "charged" },
+        { id: "ht-4", name: "モバイルバッテリー", category: "DEVICE", priority: "STANDARD", checked: false, weight: 180, requiresEnergy: true, energyStatus: "charged" },
+        { id: "ht-5", name: "常備薬 / スキンケア用品", category: "NECESSITY", priority: "STANDARD", checked: false, weight: 120, requiresEnergy: false, energyStatus: "charged" },
+        { id: "ht-6", name: "カメラ", category: "DEVICE", priority: "OPTIONAL", checked: false, weight: 450, requiresEnergy: true, energyStatus: "charged" },
+        { id: "ht-7", name: "ガイドブック / 旅行日程表", category: "OTHER", priority: "OPTIONAL", checked: false, weight: 150, requiresEnergy: false, energyStatus: "charged" }
     ]
 };
 
@@ -127,6 +127,12 @@ let watchId = null;
 let achievements = { first: false, streak3: false, redline: false, weather: false };
 let stats = { totalMissions: 0, maxStreak: 0 };
 let streakCount = 0;
+
+// 新規追加: ホロ・ショップ & クレジット状態
+let shopUnlockedThemes = ["default"];
+let shopUnlockedCores = ["AEGIS"];
+let shopCurrentTheme = "default";
+let shopCredits = 100; // 初期クレジット (100)
 
 // --- DOM要素の取得 ---
 const timeEl = document.getElementById("current-time");
@@ -201,7 +207,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // 初回インタラクション時にAudioContextを初期化するためのトリガー
     document.body.addEventListener("click", initAudioContext, { once: true });
     
-    addLog("[SYSTEM] A.E.G.I.S. V1.3.0 Boot sequence completed.");
+    // テーマ適用とショップUI・重量メーターの初期化
+    applyTheme(shopCurrentTheme);
+    updateShopUI();
+    updateStatusMeters();
+    
+    addLog("[SYSTEM] A.E.G.I.S. V1.4.0 Boot sequence completed.");
 });
 
 // 時計の更新
@@ -224,6 +235,20 @@ function loadData() {
     
     if (savedMissions) {
         missions = JSON.parse(savedMissions);
+        // 後方互換性担保: 旧アイテムデータにweightがない場合は付与
+        Object.keys(missions).forEach(mKey => {
+            missions[mKey].forEach(item => {
+                if (item.weight === undefined) {
+                    item.weight = item.category === "DEVICE" ? 200 : (item.category === "CREDENTIAL" ? 50 : 100);
+                }
+                if (item.requiresEnergy === undefined) {
+                    item.requiresEnergy = item.category === "DEVICE";
+                }
+                if (item.energyStatus === undefined) {
+                    item.energyStatus = "charged";
+                }
+            });
+        });
     } else {
         missions = JSON.parse(JSON.stringify(INITIAL_MISSIONS)); // ディープコピー
         saveData();
@@ -254,6 +279,16 @@ function loadData() {
     if (savedStreak) {
         streakCount = parseInt(savedStreak, 10) || 0;
     }
+
+    // ホロ・ショップデータ
+    const savedThemes = localStorage.getItem("aegis_shop_unlocked_themes");
+    if (savedThemes) shopUnlockedThemes = JSON.parse(savedThemes);
+    const savedCores = localStorage.getItem("aegis_shop_unlocked_cores");
+    if (savedCores) shopUnlockedCores = JSON.parse(savedCores);
+    const savedTheme = localStorage.getItem("aegis_shop_current_theme");
+    if (savedTheme) shopCurrentTheme = savedTheme;
+    const savedCredits = localStorage.getItem("aegis_shop_credits");
+    if (savedCredits !== null) shopCredits = parseInt(savedCredits, 10);
 }
 
 // データの保存
@@ -264,6 +299,12 @@ function saveData() {
     localStorage.setItem("aegis_achievements", JSON.stringify(achievements));
     localStorage.setItem("aegis_stats", JSON.stringify(stats));
     localStorage.setItem("aegis_streak", streakCount.toString());
+
+    // ホロ・ショップセーブ
+    localStorage.setItem("aegis_shop_unlocked_themes", JSON.stringify(shopUnlockedThemes));
+    localStorage.setItem("aegis_shop_unlocked_cores", JSON.stringify(shopUnlockedCores));
+    localStorage.setItem("aegis_shop_current_theme", shopCurrentTheme);
+    localStorage.setItem("aegis_shop_credits", shopCredits.toString());
 }
 
 // システムログ出力
@@ -631,9 +672,22 @@ window.changeAICore = function() {
     const select = document.getElementById("select-ai-core");
     if (!select) return;
     
-    currentAICore = select.value;
+    const coreKey = select.value;
+    // アンロックされているか確認 (AEGIS以外)
+    if (coreKey !== "AEGIS" && !shopUnlockedCores.includes(coreKey)) {
+        playErrorSound();
+        addLog(`[SYSTEM] 警告: AIコア [${coreKey}] はロックされています。ショップでアンロックしてください。`);
+        speakVoice("このコアはロックされています。");
+        select.value = currentAICore; // 元に戻す
+        return;
+    }
+    
+    currentAICore = coreKey;
     
     document.body.className = `ai-core-${currentAICore.toLowerCase()}`;
+    // テーマを再適用
+    applyTheme(shopCurrentTheme);
+    
     if (redAlertActive) document.body.classList.add("red-alert-active");
     if (geoBreachActive) document.body.classList.add("geo-breach-active");
     
@@ -699,7 +753,10 @@ function applyWeatherEffects() {
                 priority: "CRITICAL",
                 checked: false,
                 isWeatherItem: true,
-                hint: "外は雨です。傘やフードをお忘れなく。"
+                hint: "外は雨です。傘やフードをお忘れなく。",
+                weight: 250,
+                requiresEnergy: false,
+                energyStatus: "charged"
             };
             list.unshift(weatherUmbrella);
             addLog(`[WEATHER] 降水を検知。雨具 [RAIN SHIELD] をリストに追加。`);
@@ -1030,8 +1087,14 @@ function unlockAchievement(id, name) {
     if (achievements[id]) return; // 既に解除済み
     
     achievements[id] = true;
+    
+    // クレジット獲得
+    shopCredits += 50;
+    addLog(`[ACHIEVEMENT] 実績アンロックボーナス: 50 CREDITS 獲得。`);
+    
     saveData();
     renderAchievements();
+    updateShopUI();
     
     // 解放ポップアップの演出
     const popup = document.getElementById("achievement-popup");
@@ -1081,8 +1144,21 @@ function incrementStreak() {
         stats.maxStreak = streakCount;
     }
     stats.totalMissions++;
+    
+    // ストリークボーナスクレジット
+    let streakBonus = 0;
+    if (streakCount === 3) streakBonus = 20;
+    else if (streakCount === 5) streakBonus = 50;
+    else if (streakCount === 10) streakBonus = 100;
+    
+    if (streakBonus > 0) {
+        shopCredits += streakBonus;
+        addLog(`[STREAK] ストリーク達成ボーナス: ${streakBonus} CREDITS 獲得。`);
+    }
+    
     saveData();
     updateStatsDisplay();
+    updateShopUI();
     
     addLog(`[STREAK] ミッション成功！連続成功記録: ${streakCount} 回`);
     
@@ -1349,15 +1425,38 @@ function renderActiveMission() {
             
             const hintHtml = item.hint ? `<span class="gear-hint-text">${escapeHTML(item.hint)}</span>` : "";
             
+            // 重量・充電関連の追加
+            const weightVal = item.weight !== undefined ? item.weight : (item.category === "DEVICE" ? 200 : (item.category === "CREDENTIAL" ? 50 : 100));
+            const weightHtml = `<span class="gear-weight-badge">${weightVal}g</span>`;
+            
+            let batteryHtml = "";
+            let isCheckboxDisabled = "";
+            
+            if (item.requiresEnergy) {
+                const energyState = item.energyStatus || "charged";
+                const isCharged = energyState === "charged";
+                const iconClass = isCharged ? "charged" : "low";
+                const iconSymbol = isCharged ? "🔋" : "🪫";
+                batteryHtml = `<span class="gear-battery-icon ${iconClass}" onclick="toggleGearBattery('${item.id}')" title="バッテリーチェック (クリックで切替)">${iconSymbol}</span>`;
+                
+                if (!isCharged) {
+                    isCheckboxDisabled = "disabled";
+                }
+            }
+            
             html += `
                 <div class="gear-item ${isSecuredClass}" data-id="${item.id}">
                     <div class="gear-item-left">
                         <label class="checkbox-container">
-                            <input type="checkbox" ${isChecked} onchange="toggleGearCheck('${item.id}', this.checked)">
+                            <input type="checkbox" ${isChecked} ${isCheckboxDisabled} onchange="toggleGearCheck('${item.id}', this.checked)">
                             <span class="checkmark"></span>
                         </label>
                         <div class="gear-label">
-                            <span class="gear-name-text">${escapeHTML(item.name)}</span>
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 5px;">
+                                <span class="gear-name-text">${escapeHTML(item.name)}</span>
+                                ${weightHtml}
+                                ${batteryHtml}
+                            </div>
                             ${hintHtml}
                             <div class="gear-meta" style="margin-top: 4px;">
                                 ${badgeHtml}
@@ -1382,6 +1481,7 @@ function renderActiveMission() {
     
     const missingItems = totalItems - securedItems;
     updateScanConsole(totalItems, securedItems, missingItems);
+    updateStatusMeters();
 }
 
 function escapeHTML(str) {
@@ -1485,6 +1585,10 @@ function triggerFullCompletion() {
     playSuccessSound();
     speakVoice("complete");
     
+    // ミッション完了でクレジット獲得
+    shopCredits += 10;
+    addLog(`[SYSTEM] ミッション完了。10 CREDITS を獲得。`);
+    
     // ストリーク数の加算
     incrementStreak();
     
@@ -1522,6 +1626,12 @@ function handleAddGear(e) {
     const priority = gearPrioritySelectEl.value;
     const hint = gearHintInputEl.value.trim();
     
+    const weightInput = document.getElementById("gear-weight");
+    const requiresEnergyInput = document.getElementById("gear-requires-energy");
+    
+    const weight = weightInput ? parseInt(weightInput.value, 10) || 100 : 100;
+    const requiresEnergy = requiresEnergyInput ? requiresEnergyInput.checked : false;
+    
     if (!name) return;
     
     const newItem = {
@@ -1530,7 +1640,10 @@ function handleAddGear(e) {
         category: category,
         priority: priority,
         checked: false,
-        hint: hint || ""
+        hint: hint || "",
+        weight: weight,
+        requiresEnergy: requiresEnergy,
+        energyStatus: "charged"
     };
     
     if (!missions[activeMissionKey]) {
@@ -1541,9 +1654,11 @@ function handleAddGear(e) {
     saveData();
     renderActiveMission();
     
-    addLog(`[DEPLOY] 新規装備: ${name} [${priority}] を追加登録。`);
+    addLog(`[DEPLOY] 新規装備: ${name} [${priority}] (重量: ${weight}g) を追加登録。`);
     gearNameInputEl.value = "";
     gearHintInputEl.value = "";
+    if (weightInput) weightInput.value = 100;
+    if (requiresEnergyInput) requiresEnergyInput.checked = false;
     gearNameInputEl.focus();
 }
 
@@ -1630,4 +1745,278 @@ function handleCreateMission() {
     
     addLog(`[MISSION] 新規ミッション: [${keyName}] を作成。`);
     speakVoice("mission", { name: keyName.replace(/_/g, " ") });
+}
+
+// ==========================================================================
+// 12. 追加機能（V1.4.0）: 装備エネルギー＆重量, ホロ・ショップロジック
+// ==========================================================================
+
+// バッテリー状態のトグル
+window.toggleGearBattery = function(itemId) {
+    const list = missions[activeMissionKey];
+    if (!list) return;
+    
+    const item = list.find(i => i.id === itemId);
+    if (!item) return;
+    
+    playClickSound();
+    
+    const currentState = item.energyStatus || "charged";
+    const nextState = currentState === "charged" ? "low" : "charged";
+    item.energyStatus = nextState;
+    
+    if (nextState === "low") {
+        addLog(`[ENERGY] 警告: 装備 ${item.name} のバッテリー残量が低下しています。`);
+        speakVoice(`${item.name}のバッテリー残量が低下しています。充電してください。`);
+        
+        // バッテリー低下時は強制的に装備チェックを解除
+        if (item.checked) {
+            item.checked = false;
+            addLog(`[ENERGY] バッテリー低下のため、${item.name} の確保チェックを自動解除しました。`);
+        }
+    } else {
+        addLog(`[ENERGY] 装備 ${item.name} の充電完了を確認。`);
+        speakVoice(`${item.name}、充電完了。`);
+    }
+    
+    saveData();
+    renderActiveMission();
+};
+
+// 重量＆エネルギーメーターの更新
+function updateStatusMeters() {
+    const list = missions[activeMissionKey];
+    const weightValEl = document.getElementById("weight-capacity-display");
+    const energyValEl = document.getElementById("energy-status-display");
+    
+    if (!list || list.length === 0) {
+        if (weightValEl) weightValEl.textContent = "0g / 0g";
+        if (energyValEl) {
+            energyValEl.textContent = "🔋 0/0 SECURED";
+            energyValEl.className = "meter-value secured";
+        }
+        return;
+    }
+    
+    let totalWeight = 0;
+    let securedWeight = 0;
+    let totalDevices = 0;
+    let chargedDevices = 0;
+    
+    list.forEach(item => {
+        // 重量の集計
+        const w = item.weight !== undefined ? item.weight : (item.category === "DEVICE" ? 200 : (item.category === "CREDENTIAL" ? 50 : 100));
+        totalWeight += w;
+        if (item.checked) {
+            securedWeight += w;
+        }
+        
+        // 充電状態の集計
+        if (item.requiresEnergy) {
+            totalDevices++;
+            if (item.energyStatus === "charged") {
+                chargedDevices++;
+            }
+        }
+    });
+    
+    // 重量表示
+    if (weightValEl) {
+        weightValEl.textContent = `${securedWeight}g / ${totalWeight}g`;
+    }
+    
+    // エネルギー表示
+    if (energyValEl) {
+        energyValEl.textContent = `🔋 ${chargedDevices}/${totalDevices} SECURED`;
+        
+        if (totalDevices === 0) {
+            energyValEl.className = "meter-value secured";
+        } else if (chargedDevices === totalDevices) {
+            energyValEl.className = "meter-value secured";
+        } else if (chargedDevices === 0) {
+            energyValEl.className = "meter-value critical";
+        } else {
+            energyValEl.className = "meter-value warning";
+        }
+    }
+}
+
+// テーマのHTML適用
+function applyTheme(themeName) {
+    // 既存のカスタムテーマクラスを除去
+    document.body.classList.remove("theme-cyber-hacker", "theme-cobalt-blue", "theme-purple-haze");
+    
+    if (themeName !== "default") {
+        document.body.classList.add(`theme-${themeName}`);
+    }
+    shopCurrentTheme = themeName;
+}
+
+// ショップUIのボタン状態およびクレジット所持数の描画更新
+function updateShopUI() {
+    const creditsEl = document.getElementById("credit-badge-display");
+    if (creditsEl) {
+        creditsEl.textContent = `💳 ${shopCredits} CR`;
+    }
+    
+    // 各商品の状態更新
+    const items = [
+        { id: "theme-cyber", price: 50, type: "theme" },
+        { id: "theme-cobalt", price: 50, type: "theme" },
+        { id: "theme-purple", price: 70, type: "theme" },
+        { id: "core-kronos", price: 80, type: "core" },
+        { id: "core-luna", price: 80, type: "core" }
+    ];
+    
+    items.forEach(item => {
+        const btn = document.getElementById(`btn-${item.id}`);
+        if (!btn) return;
+        
+        const isTheme = item.type === "theme";
+        const isCore = item.type === "core";
+        
+        let isUnlocked = false;
+        let isApplied = false;
+        
+        if (isTheme) {
+            isUnlocked = shopUnlockedThemes.includes(item.id.replace("theme-", ""));
+            isApplied = shopCurrentTheme === item.id.replace("theme-", "");
+        } else if (isCore) {
+            isUnlocked = shopUnlockedCores.includes(item.id.replace("core-", "").toUpperCase());
+            isApplied = currentAICore === item.id.replace("core-", "").toUpperCase();
+        }
+        
+        if (isApplied) {
+            btn.textContent = "APPLIED";
+            btn.className = "cyber-btn btn-small shop-buy-btn applied";
+            btn.onclick = null;
+        } else if (isUnlocked) {
+            btn.textContent = "APPLY";
+            btn.className = "cyber-btn btn-small shop-buy-btn owned";
+            btn.onclick = () => applyShopItem(item.id);
+        } else {
+            btn.textContent = `BUY`;
+            btn.className = "cyber-btn btn-small shop-buy-btn";
+            btn.onclick = () => buyShopItem(item.id, item.price);
+            
+            // 価格ラベルの表示
+            const priceEl = document.getElementById(`price-${item.id}`);
+            if (priceEl) priceEl.textContent = `${item.price} CR`;
+        }
+    });
+    
+    // AIコア設定ドロップダウンのLOCKED表示を動的にアンロック
+    const optKronos = document.getElementById("option-core-kronos");
+    if (optKronos) {
+        const kronosUnlocked = shopUnlockedCores.includes("KRONOS");
+        optKronos.textContent = kronosUnlocked ? "K.R.O.N.O.S. (Military)" : "K.R.O.N.O.S. (LOCKED)";
+    }
+    
+    const optLuna = document.getElementById("option-core-luna");
+    if (optLuna) {
+        const lunaUnlocked = shopUnlockedCores.includes("LUNA");
+        optLuna.textContent = lunaUnlocked ? "L.U.N.A. (Support)" : "L.U.N.A. (LOCKED)";
+    }
+}
+
+// ショップアイテムの購入処理
+window.buyShopItem = function(itemId, price) {
+    if (shopCredits < price) {
+        // クレジット不足エラー音
+        playErrorSound();
+        addLog(`[SHOP] クレジットが不足しています。必要: ${price} CR / 所持: ${shopCredits} CR`);
+        speakVoice("クレジットが不足しています。");
+        return;
+    }
+    
+    shopCredits -= price;
+    
+    const isTheme = itemId.startsWith("theme-");
+    const isCore = itemId.startsWith("core-");
+    
+    if (isTheme) {
+        const themeKey = itemId.replace("theme-", "");
+        if (!shopUnlockedThemes.includes(themeKey)) {
+            shopUnlockedThemes.push(themeKey);
+        }
+        applyTheme(themeKey);
+        addLog(`[SHOP] UIテーマ [${themeKey.toUpperCase()}] を購入、適用しました。`);
+        speakVoice("新しいUIテーマを適用しました。");
+    } else if (isCore) {
+        const coreKey = itemId.replace("core-", "").toUpperCase();
+        if (!shopUnlockedCores.includes(coreKey)) {
+            shopUnlockedCores.push(coreKey);
+        }
+        // 即時切り替え
+        const select = document.getElementById("select-ai-core");
+        if (select) {
+            select.value = coreKey;
+            currentAICore = coreKey;
+            document.body.className = `ai-core-${coreKey.toLowerCase()}`;
+            autoSelectVoiceForCore();
+        }
+        addLog(`[SHOP] AIコア [${coreKey}] を購入、適用しました。`);
+        speakVoice("AIコアモジュール、アンロック完了。");
+    }
+    
+    playSuccessSound(); // 成功音
+    saveData();
+    updateShopUI();
+};
+
+// 購入済みアイテムの適用処理
+window.applyShopItem = function(itemId) {
+    const isTheme = itemId.startsWith("theme-");
+    const isCore = itemId.startsWith("core-");
+    
+    playClickSound();
+    
+    if (isTheme) {
+        const themeKey = itemId.replace("theme-", "");
+        if (shopUnlockedThemes.includes(themeKey)) {
+            applyTheme(themeKey);
+            addLog(`[SHOP] UIテーマを [${themeKey.toUpperCase()}] に切り替えました。`);
+            speakVoice("UIテーマを変更しました。");
+        }
+    } else if (isCore) {
+        const coreKey = itemId.replace("core-", "").toUpperCase();
+        if (shopUnlockedCores.includes(coreKey)) {
+            const select = document.getElementById("select-ai-core");
+            if (select) {
+                select.value = coreKey;
+                currentAICore = coreKey;
+                document.body.className = `ai-core-${coreKey.toLowerCase()}`;
+                // 現在適用中のカスタムテーマがあったら適用しなおす
+                applyTheme(shopCurrentTheme);
+                autoSelectVoiceForCore();
+            }
+            addLog(`[SHOP] AIコアを [${coreKey}] に切り替えました。`);
+            speakVoice("boot");
+        }
+    }
+    
+    saveData();
+    updateShopUI();
+};
+
+// クレジットエラー用の低音シンセ
+function playErrorSound() {
+    if (!isSoundEnabled()) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+        
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+        console.error(e);
+    }
 }

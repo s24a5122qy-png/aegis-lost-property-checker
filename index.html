@@ -163,8 +163,8 @@
                         <label for="select-ai-core">AI CORE PERSONALITY</label>
                         <select id="select-ai-core" class="cyber-select select-mini" onchange="changeAICore()">
                             <option value="AEGIS">A.E.G.I.S. (Standard)</option>
-                            <option value="KRONOS">K.R.O.N.O.S. (Military)</option>
-                            <option value="LUNA">L.U.N.A. (Support)</option>
+                            <option value="KRONOS" id="option-core-kronos">K.R.O.N.O.S. (LOCKED)</option>
+                            <option value="LUNA" id="option-core-luna">L.U.N.A. (LOCKED)</option>
                         </select>
                     </div>
                     <div class="setting-row">
@@ -192,6 +192,17 @@
                         <div class="header-buttons">
                             <button type="button" id="btn-activate-camera" class="cyber-btn btn-small btn-primary" onclick="openCameraScanner()">CAMERA SCAN</button>
                             <button type="button" id="btn-check-all" class="cyber-btn btn-small">ALL SECURE</button>
+                        </div>
+                    </div>
+                    
+                    <div class="gear-status-meters">
+                        <div class="meter-item">
+                            <span class="meter-label">LOAD CAPACITY:</span>
+                            <span class="meter-value" id="weight-capacity-display">0g / 0g</span>
+                        </div>
+                        <div class="meter-item">
+                            <span class="meter-label">BATTERY STATUS:</span>
+                            <span class="meter-value" id="energy-status-display">🔋 0/0 SECURED</span>
                         </div>
                     </div>
                     
@@ -231,7 +242,22 @@
                                     <option value="OPTIONAL">OPTIONAL (任意)</option>
                                 </select>
                             </div>
-                            <div class="form-group flex-2">
+                            <div class="form-group flex-1">
+                                <label for="gear-weight">WEIGHT (重量: g)</label>
+                                <input type="number" id="gear-weight" min="0" value="100" class="cyber-input">
+                            </div>
+                            <div class="form-group flex-1" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding-left: 10px;">
+                                <label style="margin-bottom: 5px;">ENERGY CHECK</label>
+                                <div class="cyber-switch-container" style="padding: 0;">
+                                    <div class="cyber-switch">
+                                        <input type="checkbox" id="gear-requires-energy">
+                                        <span class="switch-slider"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group flex-3">
                                 <label for="gear-hint">SECURITY HINT / MEMO (任意)</label>
                                 <input type="text" id="gear-hint" placeholder="例: 鍵の閉め忘れ注意、残高確認など..." class="cyber-input">
                             </div>
@@ -248,8 +274,11 @@
                 <div class="cyber-panel achievements-panel">
                     <div class="panel-header-actions" style="border-bottom: 1px solid rgba(0, 242, 254, 0.1); padding-bottom: 10px; margin-bottom: 15px;">
                         <h2 class="panel-title" style="margin-bottom: 0;"><span class="title-decor"></span>MISSION RECORDS & ACHIEVEMENTS</h2>
-                        <div class="streak-container">
-                            <span class="streak-badge" id="streak-badge-display">🔥 0 STREAK</span>
+                        <div class="header-buttons" style="display: flex; gap: 10px; align-items: center;">
+                            <span class="credit-badge" id="credit-badge-display">💳 100 CR</span>
+                            <div class="streak-container">
+                                <span class="streak-badge" id="streak-badge-display">🔥 0 STREAK</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -292,6 +321,63 @@
                                 <span class="ach-title">WEATHERPROOF</span>
                                 <span class="ach-desc">雨天時に雨具を確保して出撃完了</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ホロ・ショップパネル -->
+                <div class="cyber-panel shop-panel">
+                    <h2 class="panel-title"><span class="title-decor"></span>HOLOGRAM SHOP</h2>
+                    <div class="shop-grid">
+                        <!-- テーマ1 -->
+                        <div class="shop-card" id="shop-item-theme-cyber">
+                            <div class="shop-card-header">
+                                <span class="shop-card-tag">UI THEME</span>
+                                <span class="shop-card-price" id="price-theme-cyber">50 CR</span>
+                            </div>
+                            <h3 class="shop-card-title">CYBER HACKER</h3>
+                            <p class="shop-card-desc">ネオンイエローとアシッドグリーンの侵入コードを模したテーマ</p>
+                            <button type="button" class="cyber-btn btn-small shop-buy-btn" id="btn-theme-cyber" onclick="buyShopItem('theme-cyber', 50)">BUY</button>
+                        </div>
+                        <!-- テーマ2 -->
+                        <div class="shop-card" id="shop-item-theme-cobalt">
+                            <div class="shop-card-header">
+                                <span class="shop-card-tag">UI THEME</span>
+                                <span class="shop-card-price" id="price-theme-cobalt">50 CR</span>
+                            </div>
+                            <h3 class="shop-card-title">COBALT BLUE</h3>
+                            <p class="shop-card-desc">深海と光速のコバルトブルーを基調とした高輝度レーダーテーマ</p>
+                            <button type="button" class="cyber-btn btn-small shop-buy-btn" id="btn-theme-cobalt" onclick="buyShopItem('theme-cobalt', 50)">BUY</button>
+                        </div>
+                        <!-- テーマ3 -->
+                        <div class="shop-card" id="shop-item-theme-purple">
+                            <div class="shop-card-header">
+                                <span class="shop-card-tag">UI THEME</span>
+                                <span class="shop-card-price" id="price-theme-purple">70 CR</span>
+                            </div>
+                            <h3 class="shop-card-title">PURPLE HAZE</h3>
+                            <p class="shop-card-desc">未知の星雲を漂うネオンバイオレットのサイケデリックテーマ</p>
+                            <button type="button" class="cyber-btn btn-small shop-buy-btn" id="btn-theme-purple" onclick="buyShopItem('theme-purple', 70)">BUY</button>
+                        </div>
+                        <!-- ボイス・AIコア1 -->
+                        <div class="shop-card" id="shop-item-core-kronos">
+                            <div class="shop-card-header">
+                                <span class="shop-card-tag">AI CORE</span>
+                                <span class="shop-card-price" id="price-core-kronos">80 CR</span>
+                            </div>
+                            <h3 class="shop-card-title">K.R.O.N.O.S.</h3>
+                            <p class="shop-card-desc">冷徹な軍用AIのフルボイスパックおよび警告レッドカラーの適用権利</p>
+                            <button type="button" class="cyber-btn btn-small shop-buy-btn" id="btn-core-kronos" onclick="buyShopItem('core-kronos', 80)">BUY</button>
+                        </div>
+                        <!-- ボイス・AIコア2 -->
+                        <div class="shop-card" id="shop-item-core-luna">
+                            <div class="shop-card-header">
+                                <span class="shop-card-tag">AI CORE</span>
+                                <span class="shop-card-price" id="price-core-luna">80 CR</span>
+                            </div>
+                            <h3 class="shop-card-title">L.U.N.A.</h3>
+                            <p class="shop-card-desc">元気でフレンドリーな相棒ボイスパックおよびマゼンタカラーの適用権利</p>
+                            <button type="button" class="cyber-btn btn-small shop-buy-btn" id="btn-core-luna" onclick="buyShopItem('core-luna', 80)">BUY</button>
                         </div>
                     </div>
                 </div>

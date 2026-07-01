@@ -217,12 +217,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // 時計の更新
 function initClock() {
+    const dateEl = document.getElementById("current-date");
+    const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    
     function updateClock() {
         const now = new Date();
         const hrs = String(now.getHours()).padStart(2, '0');
         const mins = String(now.getMinutes()).padStart(2, '0');
         const secs = String(now.getSeconds()).padStart(2, '0');
         timeEl.textContent = `${hrs}:${mins}:${secs}`;
+        
+        if (dateEl) {
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const dayOfWeek = dayNames[now.getDay()];
+            dateEl.textContent = `${year}/${month}/${day} [${dayOfWeek}]`;
+        }
     }
     updateClock();
     setInterval(updateClock, 1000);
